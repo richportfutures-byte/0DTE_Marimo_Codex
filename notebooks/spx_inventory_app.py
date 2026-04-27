@@ -33,6 +33,10 @@ def _(mo):
 
 @app.cell
 def _():
+    from spx_inventory_playbook.calculators import (
+        calculate_futures_hedge,
+        calculate_trade_friction,
+    )
     from spx_inventory_playbook.fixtures import (
         behavior_not_authorized_state,
         clean_state,
@@ -63,7 +67,13 @@ def _():
         "Near flip unclear": near_flip_unclear_state,
     }
 
-    return evaluate_inventory_rules, fixture_factories, validate_inventory_state
+    return (
+        calculate_futures_hedge,
+        calculate_trade_friction,
+        evaluate_inventory_rules,
+        fixture_factories,
+        validate_inventory_state,
+    )
 
 
 @app.cell
@@ -198,6 +208,259 @@ def _(mo, rule_decision):
             ),
         ]
     )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        """
+        ## Mechanical Calculators
+
+        - User-entered inputs only.
+        - No live data.
+        - No recommendation.
+        - Hedge sizing is temporary inventory-control math, not trade authorization.
+        - Cost calculator uses user-supplied estimates only.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    hedge_option_delta = mo.ui.number(
+        value=0.30,
+        step=0.01,
+        label="Option delta",
+        full_width=True,
+    )
+    hedge_contracts = mo.ui.number(
+        start=1,
+        step=1,
+        value=1,
+        label="SPX option contracts",
+        full_width=True,
+    )
+    hedge_percent = mo.ui.slider(
+        start=0,
+        stop=100,
+        step=1,
+        value=100,
+        show_value=True,
+        include_input=True,
+        label="Hedge percent",
+        full_width=True,
+    )
+
+    mo.vstack(
+        [
+            mo.md("### Futures Hedge Calculator"),
+            hedge_option_delta,
+            hedge_contracts,
+            hedge_percent,
+            mo.md("A futures hedge is temporary inventory control, not a second unmanaged trade."),
+        ]
+    )
+    return hedge_contracts, hedge_option_delta, hedge_percent
+
+
+@app.cell
+def _(calculate_futures_hedge, hedge_contracts, hedge_option_delta, hedge_percent):
+    def integer_input_value(value, field_name):
+        if value is None:
+            raise ValueError(f"{field_name} is required.")
+        if isinstance(value, bool):
+            raise ValueError(f"{field_name} must be an integer.")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        raise ValueError(f"{field_name} must be an integer.")
+
+    try:
+        hedge_result = calculate_futures_hedge(
+            option_delta=hedge_option_delta.value,
+            contracts=integer_input_value(hedge_contracts.value, "contracts"),
+            hedge_percent=hedge_percent.value / 100,
+        )
+        hedge_error = None
+    except ValueError as exc:
+        hedge_result = None
+        hedge_error = str(exc)
+
+    return hedge_error, hedge_result, integer_input_value
+
+
+@app.cell
+def _(hedge_error, hedge_result, mo):
+    if hedge_error:
+        hedge_display = mo.md(f"**Input error:** `{hedge_error}`")
+    else:
+        hedge_display = mo.ui.table(
+            [
+                {
+                    "metric": "signed dollar delta per SPX point",
+                    "value": hedge_result.dollar_delta_per_point,
+                },
+                {
+                    "metric": "target hedge dollars per point",
+                    "value": hedge_result.target_hedge_dollars_per_point,
+                },
+                {"metric": "MES equivalent", "value": hedge_result.mes_equivalent},
+                {"metric": "rounded MES", "value": hedge_result.mes_rounded},
+                {"metric": "ES equivalent", "value": hedge_result.es_equivalent},
+                {"metric": "rounded ES", "value": hedge_result.es_rounded},
+            ],
+            pagination=False,
+            selection=None,
+            show_column_summaries=False,
+            show_data_types=False,
+            show_download=False,
+        )
+
+    mo.vstack([mo.md("#### Futures Hedge Output"), hedge_display])
+    return
+
+
+@app.cell
+def _(mo):
+    cost_contracts = mo.ui.number(
+        start=1,
+        step=1,
+        value=1,
+        label="Contracts",
+        full_width=True,
+    )
+    cost_legs = mo.ui.number(
+        start=1,
+        step=1,
+        value=4,
+        label="Legs",
+        full_width=True,
+    )
+    commission_per_contract = mo.ui.number(
+        value=0.0,
+        step=0.01,
+        label="Commission per contract",
+        full_width=True,
+    )
+    fees_per_contract = mo.ui.number(
+        value=0.0,
+        step=0.01,
+        label="Fees per contract",
+        full_width=True,
+    )
+    entry_spread_crossing = mo.ui.number(
+        value=0.0,
+        step=0.01,
+        label="Entry spread crossing per contract",
+        full_width=True,
+    )
+    exit_spread_crossing = mo.ui.number(
+        value=0.0,
+        step=0.01,
+        label="Exit spread crossing per contract",
+        full_width=True,
+    )
+    gross_target_dollars = mo.ui.number(
+        value=100.0,
+        step=1.0,
+        label="Gross target dollars",
+        full_width=True,
+    )
+
+    mo.vstack(
+        [
+            mo.md("### Cost / Friction Calculator"),
+            cost_contracts,
+            cost_legs,
+            commission_per_contract,
+            fees_per_contract,
+            entry_spread_crossing,
+            exit_spread_crossing,
+            gross_target_dollars,
+        ]
+    )
+    return (
+        commission_per_contract,
+        cost_contracts,
+        cost_legs,
+        entry_spread_crossing,
+        exit_spread_crossing,
+        fees_per_contract,
+        gross_target_dollars,
+    )
+
+
+@app.cell
+def _(
+    calculate_trade_friction,
+    commission_per_contract,
+    cost_contracts,
+    cost_legs,
+    entry_spread_crossing,
+    exit_spread_crossing,
+    fees_per_contract,
+    gross_target_dollars,
+    integer_input_value,
+):
+    try:
+        cost_result = calculate_trade_friction(
+            contracts=integer_input_value(cost_contracts.value, "contracts"),
+            legs=integer_input_value(cost_legs.value, "legs"),
+            commission_per_contract=commission_per_contract.value,
+            fees_per_contract=fees_per_contract.value,
+            entry_spread_crossing_per_contract=entry_spread_crossing.value,
+            exit_spread_crossing_per_contract=exit_spread_crossing.value,
+            gross_target_dollars=gross_target_dollars.value,
+        )
+        cost_error = None
+    except ValueError as exc:
+        cost_result = None
+        cost_error = str(exc)
+
+    return cost_error, cost_result
+
+
+@app.cell
+def _(cost_error, cost_result, mo):
+    if cost_error:
+        cost_display = mo.md(f"**Input error:** `{cost_error}`")
+        friction_warning_display = mo.md("")
+    else:
+        cost_display = mo.ui.table(
+            [
+                {
+                    "metric": "roundtrip contract count",
+                    "value": cost_result.roundtrip_contract_count,
+                },
+                {"metric": "commission and fees", "value": cost_result.commission_and_fees},
+                {"metric": "spread crossing cost", "value": cost_result.spread_crossing_cost},
+                {"metric": "total friction", "value": cost_result.total_friction},
+                {"metric": "target after friction", "value": cost_result.target_after_friction},
+                {
+                    "metric": "friction percent of target",
+                    "value": cost_result.friction_percent_of_target,
+                },
+                {"metric": "friction warning", "value": cost_result.friction_warning},
+            ],
+            pagination=False,
+            selection=None,
+            show_column_summaries=False,
+            show_data_types=False,
+            show_download=False,
+        )
+        friction_warning_display = (
+            mo.md(
+                "Friction is at least 25% of the gross target. This does not reject the trade "
+                "automatically, but it requires explicit justification."
+            )
+            if cost_result.friction_warning
+            else mo.md("")
+        )
+
+    mo.vstack([mo.md("#### Cost / Friction Output"), cost_display, friction_warning_display])
     return
 
 
