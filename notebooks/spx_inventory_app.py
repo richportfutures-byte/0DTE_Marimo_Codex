@@ -33,6 +33,8 @@ def _(mo):
 
 @app.cell
 def _():
+    from dataclasses import asdict
+
     from spx_inventory_playbook.calculators import (
         calculate_futures_hedge,
         calculate_trade_friction,
@@ -49,6 +51,13 @@ def _():
         rule_violation_state,
         size_exceeds_plan_state,
         thesis_invalidated_state,
+    )
+    from spx_inventory_playbook.playbook import (
+        Permission,
+        get_action_permission_matrix,
+        get_conversion_triage_table,
+        get_structure_quick_reference,
+        get_time_of_day_permission_matrix,
     )
     from spx_inventory_playbook.rules import evaluate_inventory_rules
     from spx_inventory_playbook.validators import validate_inventory_state
@@ -68,10 +77,16 @@ def _():
     }
 
     return (
+        Permission,
+        asdict,
         calculate_futures_hedge,
         calculate_trade_friction,
         evaluate_inventory_rules,
         fixture_factories,
+        get_action_permission_matrix,
+        get_conversion_triage_table,
+        get_structure_quick_reference,
+        get_time_of_day_permission_matrix,
         validate_inventory_state,
     )
 
@@ -461,6 +476,113 @@ def _(cost_error, cost_result, mo):
         )
 
     mo.vstack([mo.md("#### Cost / Friction Output"), cost_display, friction_warning_display])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        """
+        ## Inventory Adjustment Playbook
+
+        - Static operating reference.
+        - Not a strategy encyclopedia.
+        - Closing remains superior when adjustment is not clearly justified.
+        - Tables are compact by design.
+        """
+    )
+    return
+
+
+@app.cell
+def _(Permission, asdict):
+    def playbook_display_rows(rows):
+        display_rows = []
+        for row in rows:
+            display_row = {}
+            for key, value in asdict(row).items():
+                display_row[key] = (
+                    value.value.replace("_", " ") if isinstance(value, Permission) else value
+                )
+            display_rows.append(display_row)
+        return display_rows
+
+    return (playbook_display_rows,)
+
+
+@app.cell
+def _(get_action_permission_matrix, mo, playbook_display_rows):
+    mo.vstack(
+        [
+            mo.md("### Action Permission Matrix"),
+            mo.ui.table(
+                playbook_display_rows(get_action_permission_matrix()),
+                pagination=True,
+                page_size=10,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(get_structure_quick_reference, mo, playbook_display_rows):
+    mo.vstack(
+        [
+            mo.md("### Structure Quick Reference"),
+            mo.ui.table(
+                playbook_display_rows(get_structure_quick_reference()),
+                pagination=True,
+                page_size=8,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(get_conversion_triage_table, mo, playbook_display_rows):
+    mo.vstack(
+        [
+            mo.md("### Conversion Triage"),
+            mo.ui.table(
+                playbook_display_rows(get_conversion_triage_table()),
+                pagination=True,
+                page_size=10,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(get_time_of_day_permission_matrix, mo, playbook_display_rows):
+    mo.vstack(
+        [
+            mo.md("### Time-of-Day Permission Matrix"),
+            mo.ui.table(
+                playbook_display_rows(get_time_of_day_permission_matrix()),
+                pagination=True,
+                page_size=15,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
     return
 
 
