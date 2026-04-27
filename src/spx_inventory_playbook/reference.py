@@ -39,10 +39,10 @@ def get_reference_cards() -> list[ReferenceCard]:
     return [
         ReferenceCard(
             topic="Dealer gamma / GEX",
-            what_it_means="A proxy for how dealer hedging may dampen or amplify spot moves.",
-            why_it_matters_0dte="Intraday option expiry can make hedge flows dominate short-window path risk.",
-            operating_implication="Treat GEX as regime context, not a price forecast or literal barrier.",
-            common_error="Reading a dealer level as simple support or resistance.",
+            what_it_means="Positive GEX can dampen movement; negative GEX can amplify trend or whipsaw.",
+            why_it_matters_0dte="Same-day expiry can make hedge-flow character dominate short-window path risk.",
+            operating_implication="Use GEX as regime context, never as a trade signal.",
+            common_error="Reading GEX as a forecast instead of a regime input.",
             verification_inputs=(
                 "dealer-flow source timestamp",
                 "aggregate GEX estimate",
@@ -51,10 +51,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Zero-gamma flip",
-            what_it_means="A model level where estimated dealer hedge response may change sign.",
-            why_it_matters_0dte="Near the flip, small spot moves can change whether flow dampens or accelerates.",
-            operating_implication="Use distance from flip as a regime input for hold, reduce, or hedge review.",
-            common_error="Treating the flip as a guaranteed reversal level.",
+            what_it_means="A regime boundary where estimated hedge-flow character may change.",
+            why_it_matters_0dte="Acceptance across the flip can shift expected dampening or amplification.",
+            operating_implication="Reduce authorization when spot chops around the flip.",
+            common_error="Treating the flip as a literal price barrier.",
             verification_inputs=(
                 "flip estimate source",
                 "current spot reference",
@@ -63,10 +63,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Vanna and charm",
-            what_it_means="Sensitivity of delta to implied volatility and time decay.",
-            why_it_matters_0dte="Fast IV and time changes can shift hedge needs even if spot is stable.",
-            operating_implication="Check whether IV decay or time decay is changing delta exposure.",
-            common_error="Explaining every move with spot-only delta.",
+            what_it_means="Hedge-flow context from volatility sensitivity and time decay.",
+            why_it_matters_0dte="Vol crush and time decay can force hedge changes when positioning is concentrated.",
+            operating_implication="Use vanna and charm as context, not standalone entries.",
+            common_error="Treating spot movement as the only hedge driver.",
             verification_inputs=(
                 "surface snapshot",
                 "time to expiry",
@@ -75,10 +75,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Skew and structure selection",
-            what_it_means="Relative pricing across strikes and tails, not just headline volatility.",
-            why_it_matters_0dte="Skew shapes payoff realism, wing cost, and repair quality.",
-            operating_implication="Use skew to judge whether a structure is efficient or overpaying for tails.",
-            common_error="Using VIX alone as the pricing guide.",
+            what_it_means="Structure choice must account for skew, not direction alone.",
+            why_it_matters_0dte="Rich skew may be compensation for real tail risk.",
+            operating_implication="Avoid short premium into negative-gamma movement without regime proof.",
+            common_error="Choosing structure from direction while ignoring skew.",
             verification_inputs=(
                 "option chain snapshot",
                 "skew measure",
@@ -87,10 +87,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Variance risk premium",
-            what_it_means="The gap between implied variance and later realized movement.",
-            why_it_matters_0dte="The edge can vanish when intraday realized movement outruns implied pricing.",
-            operating_implication="Verify implied versus realized context before relying on premium decay.",
-            common_error="Assuming premium is rich without cost and regime checks.",
+            what_it_means="Implied volatility must be rich versus expected realized volatility after costs.",
+            why_it_matters_0dte="Compressed VRP can make short premium unattractive even with time decay.",
+            operating_implication="Judge VRP by regime and costs, not theta alone.",
+            common_error="Assuming premium decay is enough without realized-vol context.",
             verification_inputs=(
                 "implied volatility inputs",
                 "realized volatility context",
@@ -99,10 +99,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="SPX/SPXW execution microstructure",
-            what_it_means="Index options have cash settlement, wide markets, and complex routing behavior.",
-            why_it_matters_0dte="Small execution friction can dominate short-lived edge and adjustment quality.",
-            operating_implication="Use limit discipline, liquidity checks, and route awareness.",
-            common_error="Ignoring market width and assuming model value is executable.",
+            what_it_means="Multi-leg mids can be non-fillable; routing and wing availability matter.",
+            why_it_matters_0dte="A valid adjustment can be operationally invalid if it cannot be filled.",
+            operating_implication="Verify actual liquidity, route behavior, and wing availability.",
+            common_error="Assuming theoretical mid value is executable.",
             verification_inputs=(
                 "broker quote display",
                 "route availability",
@@ -111,10 +111,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="PM cash settlement",
-            what_it_means="SPXW positions settle to cash using the official closing index value.",
-            why_it_matters_0dte="Residual exposure can persist into the close even without share delivery.",
-            operating_implication="Confirm expiry type, settlement timing, and platform exercise treatment.",
-            common_error="Confusing cash settlement with equity-style assignment mechanics.",
+            what_it_means="Same-day PM cash settlement compresses time into the closing window.",
+            why_it_matters_0dte="Final-hour short gamma is not justified by theta alone.",
+            operating_implication="Use close-by-time discipline over squeezing final pennies.",
+            common_error="Treating final-hour gamma as harmless because settlement is cash.",
             verification_inputs=(
                 "exchange product specs",
                 "broker expiry notes",
@@ -123,10 +123,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Futures hedging",
-            what_it_means="ES or MES can offset delta exposure without changing option structure.",
-            why_it_matters_0dte="A temporary hedge may control path risk while option liquidity is poor.",
-            operating_implication="Define hedge size, exit condition, and inventory purpose before use.",
-            common_error="Letting the hedge become a separate directional thesis.",
+            what_it_means="ES or MES hedging is temporary delta inventory control.",
+            why_it_matters_0dte="It can reduce path exposure without changing option structure.",
+            operating_implication="Every hedge needs removal, reassessment, or close trigger.",
+            common_error="Letting hedge inventory become a directional view.",
             verification_inputs=(
                 "current option delta",
                 "contract multiplier",
@@ -135,10 +135,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Cost realism",
-            what_it_means="Commissions, fees, spread crossing, and slippage reduce theoretical edge.",
-            why_it_matters_0dte="Frequent adjustments can turn a valid idea into negative expectancy.",
-            operating_implication="Use user-supplied friction estimates before judging any adjustment.",
-            common_error="Reviewing gross outcome while ignoring execution drag.",
+            what_it_means="Every adjustment must survive commissions, fees, and spread crossing.",
+            why_it_matters_0dte="Gross credit or debit is not the same as executable edge.",
+            operating_implication="If costs do not improve the position, close is superior.",
+            common_error="Judging adjustment quality before friction is counted.",
             verification_inputs=(
                 "broker fee schedule",
                 "actual fills",
@@ -147,10 +147,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Behavioral lockouts",
-            what_it_means="Predefined restrictions after rule breach, loss limit, or impaired discretion.",
-            why_it_matters_0dte="Fast expiry compresses decision time and magnifies loss-repair behavior.",
-            operating_implication="When lockout is active, restrict actions to reduce, close, hedge, or stop.",
-            common_error="Calling a repair an adjustment after discipline has failed.",
+            what_it_means="When behavior is impaired, discretion collapses.",
+            why_it_matters_0dte="Fast expiry magnifies loss-repair behavior and rushed discretion.",
+            operating_implication="Limit actions to reduce, close, temporary hedge, flatten, or stop.",
+            common_error="Using conversions, rolls, widening, or added risk under impairment.",
             verification_inputs=(
                 "daily rule log",
                 "loss limit status",
@@ -159,10 +159,10 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Modern 0DTE structural risk",
-            what_it_means="Same-day expiry concentrates gamma, liquidity decay, and crowding risk.",
-            why_it_matters_0dte="Path, timing, and execution can matter more than end-of-day direction.",
-            operating_implication="Require time-of-day, liquidity, and close-by-time checks.",
-            common_error="Treating a same-day structure like a longer-dated spread.",
+            what_it_means="Modern 0DTE flow can alter intraday dealer positioning quickly.",
+            why_it_matters_0dte="Pinning is not guaranteed when flow and gamma shift quickly.",
+            operating_implication="Avoid backfitting post-2022 behavior from older option behavior.",
+            common_error="Assuming pinning will rescue unmanaged gamma.",
             verification_inputs=(
                 "time window",
                 "liquidity condition",
@@ -171,14 +171,14 @@ def get_reference_cards() -> list[ReferenceCard]:
         ),
         ReferenceCard(
             topic="Source / broker verification checklist",
-            what_it_means="A checklist for confirming inputs before relying on any workflow output.",
-            why_it_matters_0dte="Stale, mismatched, or platform-specific data can corrupt decisions.",
-            operating_implication="Verify source time, symbol, expiry, settlement type, and position state.",
-            common_error="Assuming the app or prompt has real-time access.",
+            what_it_means="Product mechanics need Cboe, OCC, OIC, and broker verification.",
+            why_it_matters_0dte="Broker rules control margin, routing, spread handling, and liquidation.",
+            operating_implication="Verify source, broker rule, symbol, expiry, and position state.",
+            common_error="Assuming reference cards have live broker or market-data access.",
             verification_inputs=(
-                "data timestamp",
-                "symbol and expiry",
-                "broker position screen",
+                "Cboe OCC OIC sources",
+                "broker rule page",
+                "current platform settings",
             ),
         ),
     ]

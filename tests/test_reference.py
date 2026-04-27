@@ -85,3 +85,43 @@ def test_reference_cards_do_not_contain_recommendation_phrases() -> None:
         joined = " ".join(card_strings(card)).lower()
         for phrase in FORBIDDEN_RECOMMENDATION_PHRASES:
             assert phrase not in joined
+
+
+def test_dealer_level_language_does_not_imply_support_or_resistance() -> None:
+    allowed_phrases = (
+        "dealer levels are not support/resistance",
+        "dealer levels are not support or resistance",
+    )
+
+    for card in get_reference_cards():
+        joined = " ".join(card_strings(card)).lower()
+        contains_forbidden_word = "support" in joined or "resistance" in joined
+        explicitly_rejects_level_language = any(phrase in joined for phrase in allowed_phrases)
+
+        assert not contains_forbidden_word or explicitly_rejects_level_language
+
+
+def test_reference_cards_do_not_say_vix_alone_is_sufficient() -> None:
+    forbidden_phrases = (
+        "vix alone is sufficient",
+        "vix alone is enough",
+        "vix is sufficient",
+    )
+
+    for card in get_reference_cards():
+        joined = " ".join(card_strings(card)).lower()
+        for phrase in forbidden_phrases:
+            assert phrase not in joined
+
+
+def test_futures_hedging_is_not_described_as_a_second_trade() -> None:
+    forbidden_phrases = (
+        "second trade",
+        "second directional trade",
+        "separate directional trade",
+    )
+
+    for card in get_reference_cards():
+        joined = " ".join(card_strings(card)).lower()
+        for phrase in forbidden_phrases:
+            assert phrase not in joined
