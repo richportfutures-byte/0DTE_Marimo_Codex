@@ -1,28 +1,37 @@
-# 0DTE SPX Inventory Reference App
+# 0DTE SPX/SPXW Inventory Reference App
 
-This project is a standalone Python/marimo reference app for an experienced intraday trader managing 0DTE SPX/SPXW option inventory.
+A standalone Python/marimo app for professional 0DTE SPX/SPXW inventory reference and operating discipline.
 
-The app is planned as a compact operator reference, not as a live trading system. Future work will organize reference material, deterministic inventory adjustment rules, and session-specific prompt workflows that rely only on user-supplied live or recent market context.
+This repo is a compact reference and workflow shell. It is not a signal engine, not a live trading system, and not personalized financial advice.
 
-## Non-Goals
+## Architecture Map
 
-- Not a signal engine
-- Not personalized financial advice
-- Not a beginner options course
-- No fabricated live data
-- No automated trade recommendations
+- `reference.py`: Professional Reference Cards.
+- `validators.py`: Inventory State Validation.
+- `rules.py`: Deterministic Rule Evaluation.
+- `fixtures.py`: Abstract Fixture States.
+- `calculators.py`: Mechanical Calculators.
+- `playbook.py`: Inventory Adjustment Playbook.
+- `prompts.py`: Session-Specific Prompt Workflow.
+- `notebooks/spx_inventory_app.py`: marimo UI shell.
+- `tests/`: unit tests and guardrail checks.
 
-## Planned Architecture
+## Safety Boundaries
 
-- `reference.py`: static reference card definitions for market structure and options concepts.
-- `rules.py`: deterministic rule scaffolding for hold, reduce, hedge, convert, close, and stop actions.
-- `calculators.py`: small pure calculation helpers that avoid fabricated market inputs.
-- `prompts.py`: prompt workflow templates that require user-supplied data.
-- `validators.py`: input validation helpers for future app and rule layers.
-- `notebooks/spx_inventory_app.py`: marimo interface entrypoint.
-- `tests/`: focused unit tests for deterministic behavior.
+- No live market data.
+- No fabricated Greeks, bid/asks, fills, strikes, or P/L.
+- No automated trade recommendations.
+- Not personalized financial advice.
+- User-supplied inputs only for calculators and prompt workflow.
+- Reference cards are encoded from prompt-supplied doctrine, not assumed uploaded documents.
 
 ## Commands
+
+Install or sync the environment:
+
+```bash
+uv sync
+```
 
 Run tests:
 
@@ -41,3 +50,30 @@ Launch the marimo app:
 ```bash
 uv run marimo run notebooks/spx_inventory_app.py
 ```
+
+## Current App Sections
+
+- Professional Reference Cards
+- Fixture State
+- Selected State Summary
+- Validation Messages
+- Rule Decision
+- Mechanical Calculators
+- Inventory Adjustment Playbook
+- Session-Specific Prompt Workflow
+
+## Acceptance Checklist
+
+- `uv run pytest`
+- `uv run python notebooks/spx_inventory_app.py`
+- Browser review of dropdowns and calculators
+- Confirm no fake market data appears
+- Confirm no recommendation language appears
+
+## Future Work Backlog
+
+- Optional source-link registry using official Cboe/OCC/OIC/broker references only.
+- Optional layout refinement.
+- Optional export/static publishing workflow.
+- Optional user-input form generation for prompt templates.
+- Optional stronger app-level smoke tests.
