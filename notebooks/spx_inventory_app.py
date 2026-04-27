@@ -60,6 +60,7 @@ def _():
         get_time_of_day_permission_matrix,
     )
     from spx_inventory_playbook.prompts import get_session_prompt_templates
+    from spx_inventory_playbook.reference import get_reference_cards
     from spx_inventory_playbook.rules import evaluate_inventory_rules
     from spx_inventory_playbook.validators import validate_inventory_state
 
@@ -86,11 +87,119 @@ def _():
         fixture_factories,
         get_action_permission_matrix,
         get_conversion_triage_table,
+        get_reference_cards,
         get_session_prompt_templates,
         get_structure_quick_reference,
         get_time_of_day_permission_matrix,
         validate_inventory_state,
     )
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        """
+        ## Professional Reference Cards
+
+        - Static reference layer.
+        - Encoded from prompt-supplied doctrine.
+        - Not live market analysis.
+        - Not trade authorization.
+        - Verification inputs show what must be checked externally.
+        """
+    )
+    return
+
+
+@app.cell
+def _(get_reference_cards):
+    reference_cards = get_reference_cards()
+    reference_card_by_topic = {
+        reference_card.topic: reference_card for reference_card in reference_cards
+    }
+    return reference_card_by_topic, reference_cards
+
+
+@app.cell
+def _(mo, reference_card_by_topic):
+    reference_card_selector = mo.ui.dropdown(
+        options=list(reference_card_by_topic),
+        value="Dealer gamma / GEX",
+        label="Reference topic",
+    )
+
+    mo.vstack([mo.md("### Reference Topic"), reference_card_selector])
+    return (reference_card_selector,)
+
+
+@app.cell
+def _(reference_card_by_topic, reference_card_selector):
+    selected_reference_card = reference_card_by_topic[reference_card_selector.value]
+    return (selected_reference_card,)
+
+
+@app.cell
+def _(mo, selected_reference_card):
+    selected_reference_rows = [
+        {"field": "topic", "value": selected_reference_card.topic},
+        {"field": "what it means", "value": selected_reference_card.what_it_means},
+        {
+            "field": "why it matters 0DTE",
+            "value": selected_reference_card.why_it_matters_0dte,
+        },
+        {
+            "field": "operating implication",
+            "value": selected_reference_card.operating_implication,
+        },
+        {"field": "common error", "value": selected_reference_card.common_error},
+        {
+            "field": "verification inputs",
+            "value": ", ".join(selected_reference_card.verification_inputs),
+        },
+    ]
+
+    mo.vstack(
+        [
+            mo.md("### Selected Reference Card"),
+            mo.ui.table(
+                selected_reference_rows,
+                pagination=False,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, reference_cards):
+    reference_overview_rows = [
+        {
+            "topic": reference_card.topic,
+            "operating implication": reference_card.operating_implication,
+            "common error": reference_card.common_error,
+        }
+        for reference_card in reference_cards
+    ]
+
+    mo.vstack(
+        [
+            mo.md("### All Reference Cards"),
+            mo.ui.table(
+                reference_overview_rows,
+                pagination=True,
+                page_size=12,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
+    return
 
 
 @app.cell
