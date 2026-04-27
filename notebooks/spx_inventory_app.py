@@ -59,6 +59,7 @@ def _():
         get_structure_quick_reference,
         get_time_of_day_permission_matrix,
     )
+    from spx_inventory_playbook.prompts import get_session_prompt_templates
     from spx_inventory_playbook.rules import evaluate_inventory_rules
     from spx_inventory_playbook.validators import validate_inventory_state
 
@@ -85,6 +86,7 @@ def _():
         fixture_factories,
         get_action_permission_matrix,
         get_conversion_triage_table,
+        get_session_prompt_templates,
         get_structure_quick_reference,
         get_time_of_day_permission_matrix,
         validate_inventory_state,
@@ -581,6 +583,98 @@ def _(get_time_of_day_permission_matrix, mo, playbook_display_rows):
                 show_data_types=False,
                 show_download=False,
             ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        """
+        ## Session-Specific Prompt Workflow
+
+        - Prompt templates only.
+        - User supplies the data.
+        - Missing fields must be marked unknown.
+        - No fake data.
+        - No live trade recommendations.
+        - One adjustment drill at a time.
+        """
+    )
+    return
+
+
+@app.cell
+def _(get_session_prompt_templates):
+    session_prompt_templates = get_session_prompt_templates()
+    session_prompt_template_by_name = {
+        prompt_template.name: prompt_template for prompt_template in session_prompt_templates
+    }
+    return session_prompt_template_by_name, session_prompt_templates
+
+
+@app.cell
+def _(mo, session_prompt_template_by_name):
+    prompt_template_selector = mo.ui.dropdown(
+        options=list(session_prompt_template_by_name),
+        value="Pre-session regime synthesis",
+        label="Prompt template",
+    )
+
+    mo.vstack([mo.md("### Template Selector"), prompt_template_selector])
+    return (prompt_template_selector,)
+
+
+@app.cell
+def _(prompt_template_selector, session_prompt_template_by_name):
+    selected_prompt_template = session_prompt_template_by_name[prompt_template_selector.value]
+    return (selected_prompt_template,)
+
+
+@app.cell
+def _(mo, selected_prompt_template):
+    prompt_metadata = [
+        {"field": "name", "value": selected_prompt_template.name},
+        {"field": "purpose", "value": selected_prompt_template.purpose},
+    ]
+    required_inputs = [
+        {"required input": required_input}
+        for required_input in selected_prompt_template.required_inputs
+    ]
+
+    mo.vstack(
+        [
+            mo.md("### Template Metadata"),
+            mo.ui.table(
+                prompt_metadata,
+                pagination=False,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+            mo.md("#### Required Inputs"),
+            mo.ui.table(
+                required_inputs,
+                pagination=True,
+                page_size=10,
+                selection=None,
+                show_column_summaries=False,
+                show_data_types=False,
+                show_download=False,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, selected_prompt_template):
+    mo.vstack(
+        [
+            mo.md("### Copy-Ready Template"),
+            mo.md("```text\n" + selected_prompt_template.template + "\n```"),
         ]
     )
     return
