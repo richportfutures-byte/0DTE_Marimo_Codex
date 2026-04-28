@@ -43,6 +43,11 @@ uv run marimo run notebooks/spx_inventory_app.py
 - No strategy encyclopedia or beginner course.
 - No live broker or market-data access claims.
 
+## Known Maintenance Hazards
+
+- **`_value_frontend` (marimo private API):** The position-entry click-dedup logic in `notebooks/spx_inventory_app.py` reads `button._value_frontend` to get a monotonic click count from `mo.ui.run_button`. This is a private attribute (leading underscore) with no public-API guarantee. If marimo renames or removes it, the fallback in `run_button_click_count()` silently degrades to the original double-add-on-edit behavior. A CI test (`test_run_button_exposes_value_frontend`) fails loudly on breakage.
+- **`app._cell_manager` (marimo private API):** The notebook smoke test uses `app._cell_manager.valid_cells()` to assert cells exist. Same upgrade risk pattern. A CI test (`test_app_exposes_cell_manager`) pins this contract.
+
 ## Next Safe Development Steps
 
 - Add official source-link registry for Cboe/OCC/OIC/broker references.

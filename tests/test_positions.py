@@ -24,6 +24,10 @@ POSITIONS_GUARDRAIL_FILES = (
     ROOT / "src/spx_inventory_playbook/positions.py",
     ROOT / "tests/test_positions.py",
 )
+# NOTE: Markers are built from split string-tuples so the guardrail does not
+# flag this file itself. Do not simplify these into plain string literals
+# because the tokenize-based check below would then report this test file as
+# containing a forbidden market example.
 FORBIDDEN_MARKET_EXAMPLE_MARKERS = tuple(
     "".join(parts)
     for parts in (
@@ -157,7 +161,6 @@ class TestPnLCalculation:
 
     def test_debit_position_loss_when_mark_drops(self):
         pos = _debit_spread().with_mark(0.0)
-        expected = (0.0 - 1.0) * SPX_MULTIPLIER
         assert pos.total_pnl < 0
 
     def test_net_pnl_subtracts_friction(self):
@@ -221,6 +224,26 @@ class TestPositionMutations:
 
         with pytest.raises(ValueError, match="already closed"):
             closed.closed(exit_mark=1.0)
+
+    def test_with_mark_rejects_closed_position(self):
+        closed = _credit_spread().closed(exit_mark=0.0)
+        with pytest.raises(ValueError, match="Cannot modify a closed position"):
+            closed.with_mark(0.5)
+
+    def test_with_greeks_rejects_closed_position(self):
+        closed = _credit_spread().closed(exit_mark=0.0)
+        with pytest.raises(ValueError, match="Cannot modify a closed position"):
+            closed.with_greeks(1.0, 2.0, 3.0)
+
+    def test_with_adjustment_rejects_closed_position(self):
+        closed = _credit_spread().closed(exit_mark=0.0)
+        with pytest.raises(ValueError, match="Cannot modify a closed position"):
+            closed.with_adjustment("test note")
+
+    def test_with_thesis_invalidated_rejects_closed_position(self):
+        closed = _credit_spread().closed(exit_mark=0.0)
+        with pytest.raises(ValueError, match="Cannot modify a closed position"):
+            closed.with_thesis_invalidated()
 
     def test_net_greeks_scale_by_contracts(self):
         pos = _debit_spread(contracts=3).with_greeks(1.0, 2.0, -3.0)

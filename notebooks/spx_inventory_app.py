@@ -263,8 +263,6 @@ def _(mo, rule_decision, validation_result, selected_state):
 
     allowed = ", ".join(sorted(a.value.replace("_", " ") for a in rule_decision.allowed_actions))
     blocked = ", ".join(sorted(a.value.replace("_", " ") for a in rule_decision.blocked_actions)) or "none"
-    reasons = "; ".join(rule_decision.reasons) or "none"
-    warnings = "; ".join(rule_decision.warnings) or "none"
 
     severity_badge = (
         f'<span style="background:{sev_color};color:#000;padding:3px 10px;'
@@ -283,6 +281,12 @@ def _(mo, rule_decision, validation_result, selected_state):
 
     # State summary in compact grid
     s = selected_state
+    ok_icon = "\u2705"
+    fail_icon = "\u274c"
+    stop_icon = "\U0001f6d1"
+    thesis_valid = ok_icon if s.position.thesis_valid else fail_icon
+    behavior_auth = ok_icon if s.behavior.behavior_authorized else fail_icon
+    lockout = stop_icon if s.behavior.daily_lockout_active or s.behavior.weekly_lockout_active else f"{ok_icon} None"
     state_html = (
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:0.85em">'
         f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
@@ -292,11 +296,11 @@ def _(mo, rule_decision, validation_result, selected_state):
         f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
         f'<div style="color:#94a3b8;font-size:0.8em">Structure</div>{s.position.structure.value}</div>'
         f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Thesis Valid</div>{"\u2705" if s.position.thesis_valid else "\u274c"}</div>'
+        f'<div style="color:#94a3b8;font-size:0.8em">Thesis Valid</div>{thesis_valid}</div>'
         f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Behavior Auth</div>{"\u2705" if s.behavior.behavior_authorized else "\u274c"}</div>'
+        f'<div style="color:#94a3b8;font-size:0.8em">Behavior Auth</div>{behavior_auth}</div>'
         f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Lockout</div>{"\U0001f6d1" if s.behavior.daily_lockout_active or s.behavior.weekly_lockout_active else "\u2705 None"}</div>'
+        f'<div style="color:#94a3b8;font-size:0.8em">Lockout</div>{lockout}</div>'
         '</div>'
     )
 
@@ -826,6 +830,7 @@ def _(
     add_click_state,
     set_add_click,
     run_button_click_count,
+    html_escape,
     mo,
 ):
     add_msg = ""
@@ -858,7 +863,7 @@ def _(
                 friction_paid=v["friction"],
             )
             set_positions(positions_state() + (new_pos,))
-            add_msg = f"\u2705 Added: {desc}"
+            add_msg = f"\u2705 Added: {html_escape(desc)}"
         except (ValueError, KeyError, TypeError) as exc:
             add_msg = f"\u274c Error: {exc}"
     if add_msg:
@@ -926,6 +931,7 @@ def _(
     invalidate_btn,
     manage_click_state,
     manage_selector,
+    mo,
     new_delta,
     new_gamma,
     new_mark,
@@ -939,8 +945,11 @@ def _(
 ):
     def _apply(fn):
         pid = manage_selector.value
-        updated = tuple(fn(p) if p.id == pid else p for p in positions_state())
-        set_positions(updated)
+        try:
+            updated = tuple(fn(p) if p.id == pid else p for p in positions_state())
+            set_positions(updated)
+        except ValueError as exc:
+            mo.output.replace(mo.md(f"**❌ {exc}**"))
 
     def _handle_click(key, button, fn):
         if button is None or manage_selector is None or not manage_selector.value:
@@ -1013,21 +1022,21 @@ def _(
 
     sidebar_parts = [
         '<div style="font-family:monospace;font-size:0.85em;color:#e2e8f0">',
-        f'<div style="font-size:1.1em;font-weight:700;margin-bottom:8px">\U0001f4ca SESSION</div>',
+        '<div style="font-size:1.1em;font-weight:700;margin-bottom:8px">\U0001f4ca SESSION</div>',
         f'<div style="color:#94a3b8;margin-bottom:4px">{tw_label}</div>',
         f'<div style="margin-bottom:4px">Budget: ${daily_budget_input.value or 2000:.0f}</div>',
         _budget_bar(summary.budget_used_pct),
         f'<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">{summary.budget_used_pct:.0%} utilized</div>',
         '<hr style="border-color:#334155;margin:8px 0">',
-        f'<div style="font-weight:700;margin-bottom:6px">\U0001f4b0 P&L</div>',
+        '<div style="font-weight:700;margin-bottom:6px">\U0001f4b0 P&L</div>',
         f'<div style="font-size:1.3em;font-weight:700;color:{pnl_c}">',
         f'{"" if summary.net_pnl < 0 else "+"}${summary.net_pnl:,.0f}</div>',
-        f'<div style="color:#94a3b8;font-size:0.8em">',
+        '<div style="color:#94a3b8;font-size:0.8em">',
         f'Open: ${summary.open_pnl:+,.0f} | Closed: ${summary.closed_pnl:+,.0f}</div>',
-        f'<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">',
+        '<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">',
         f'Friction: -${summary.total_friction:,.0f}</div>',
         '<hr style="border-color:#334155;margin:8px 0">',
-        f'<div style="font-weight:700;margin-bottom:6px">\U0001f9ee GREEKS</div>',
+        '<div style="font-weight:700;margin-bottom:6px">\U0001f9ee GREEKS</div>',
         f'<div>\u0394 {summary.net_delta:+.2f} &nbsp; \u0393 {summary.net_gamma:+.3f} &nbsp; \u0398 {summary.net_theta:+.2f}</div>',
         f'<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">{summary.total_contracts_open} contracts open | {summary.total_adjustments} adj</div>',
     ]
@@ -1041,7 +1050,7 @@ def _(
             urg = time_urgency(current_tw, p.close_by_time)
             pc = _pnl_color(p.total_pnl)
             pct_target = f"{p.pnl_pct_of_target:.0%}" if p.target_total else "--"
-            description = html_escape(p.description)
+            description = p.description
             sidebar_parts.append(
                 f'<div style="background:#1e293b;border-radius:6px;padding:8px;margin-bottom:6px">'
                 f'<div style="font-weight:600;margin-bottom:2px">{description}</div>'
@@ -1067,7 +1076,7 @@ def _(
 
     # Behavioral health
     sidebar_parts.append('<hr style="border-color:#334155;margin:8px 0">')
-    sidebar_parts.append(f'<div style="font-weight:700;margin-bottom:4px">\U0001f6e1 DISCIPLINE</div>')
+    sidebar_parts.append('<div style="font-weight:700;margin-bottom:4px">\U0001f6e1 DISCIPLINE</div>')
     sidebar_parts.append(f'<div style="color:#94a3b8;font-size:0.85em">Trades: {len(all_positions)} | Adj: {summary.total_adjustments}</div>')
     if summary.budget_used_pct >= 0.8:
         sidebar_parts.append('<div style="color:#f87171;font-weight:600;font-size:0.85em">\u26a0 Budget &ge; 80%</div>')

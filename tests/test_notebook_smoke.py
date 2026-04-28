@@ -39,3 +39,23 @@ def test_notebook_script_exits_under_timeout() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_run_button_exposes_value_frontend() -> None:
+    """Fail loudly if marimo removes _value_frontend; click-dedup will silently regress."""
+    import marimo as mo
+
+    button = mo.ui.run_button(label="test")
+    assert hasattr(button, "_value_frontend"), (
+        "marimo run_button no longer exposes _value_frontend; "
+        "click-dedup in spx_inventory_app.py will silently regress to double-fire behavior"
+    )
+
+
+def test_app_exposes_cell_manager() -> None:
+    """Fail loudly if marimo removes _cell_manager; notebook smoke test will break."""
+    module = _load_notebook_module()
+    assert hasattr(module.app, "_cell_manager"), (
+        "marimo App no longer exposes _cell_manager; "
+        "test_notebook_import_exposes_marimo_app_with_cells will need updating"
+    )

@@ -88,19 +88,29 @@ def test_allowed_actions_are_broad_for_clean_validation() -> None:
 
 
 def test_allowed_actions_dispatch_matches_rule_evaluation_for_fixture_states() -> None:
-    fixture_states = (
-        clean_state(),
-        lockout_state(),
-        behavior_not_authorized_state(),
-        rule_violation_state(),
-        thesis_invalidated_state(),
-        poor_liquidity_state(),
-        final_five_minutes_state(),
-        size_exceeds_plan_state(),
-        loss_avoidance_state(),
-        negative_gex_credit_spread_state(),
-        near_flip_unclear_state(),
+    import inspect
+
+    from spx_inventory_playbook import fixtures
+
+    fixture_states = [
+        fn()
+        for name, fn in inspect.getmembers(fixtures, inspect.isfunction)
+        if name.endswith("_state") and name != "state_with_overrides"
+    ]
+    fixture_names = {
+        name
+        for name, fn in inspect.getmembers(fixtures, inspect.isfunction)
+        if name.endswith("_state") and name != "state_with_overrides"
+    }
+
+    assert len(fixture_states) >= 10, (
+        f"Expected at least 10 fixture states, found {len(fixture_states)}; "
+        "did a fixture get renamed or removed?"
     )
+    assert {
+        negative_gex_credit_spread_state.__name__,
+        near_flip_unclear_state.__name__,
+    } <= fixture_names
 
     for state in fixture_states:
         assert (

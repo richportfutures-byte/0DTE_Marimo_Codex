@@ -7,6 +7,7 @@ from spx_inventory_playbook.playbook import (
     get_structure_quick_reference,
     get_time_of_day_permission_matrix,
 )
+from spx_inventory_playbook.validators import Action
 
 
 TIME_PERMISSION_FIELDS = (
@@ -28,6 +29,33 @@ def row_by_action(rows, action: str):
 
 def test_action_permission_matrix_has_exactly_twenty_rows() -> None:
     assert len(get_action_permission_matrix()) == 20
+
+
+def test_playbook_action_labels_are_recognizable() -> None:
+    """Ensure playbook action strings are traceable to the Action enum."""
+    enum_tokens = {
+        token
+        for action in Action
+        for token in action.name.lower().split("_")
+        if len(token) > 2
+    }
+    bridge_labels = {
+        "Scale out": Action.REDUCE,
+        "Add to winner": Action.CONVERT_RESTRUCTURE,
+        "Add to loser": Action.CONVERT_RESTRUCTURE,
+        "Recenter butterfly": Action.CONVERT_RESTRUCTURE,
+        "Remove one side of iron condor": Action.CONVERT_RESTRUCTURE,
+        "Roll strike": Action.CONVERT_RESTRUCTURE,
+        "Widen spread": Action.CONVERT_RESTRUCTURE,
+    }
+
+    for row in get_action_permission_matrix():
+        action_label = row.action.lower()
+        matches = [token for token in enum_tokens if token in action_label]
+        assert matches or row.action in bridge_labels, (
+            f"Playbook action '{row.action}' has no recognizable token from Action enum; "
+            f"known tokens: {sorted(enum_tokens)}"
+        )
 
 
 def test_structure_quick_reference_has_exactly_eight_rows() -> None:

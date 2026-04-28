@@ -5,6 +5,7 @@ User-supplied inputs only. No live market data. No fabricated values.
 
 from dataclasses import dataclass, replace
 from enum import Enum
+from html import escape as html_escape
 from uuid import uuid4
 
 from .validators import PositionStructure, TimeWindow
@@ -141,16 +142,25 @@ class Position:
         return self.theta * self.contracts
 
     def with_mark(self, new_mark: float) -> "Position":
+        if self.status is PositionStatus.CLOSED:
+            raise ValueError("Cannot modify a closed position.")
         return replace(self, current_mark=new_mark)
 
     def with_greeks(self, delta: float, gamma: float, theta: float) -> "Position":
+        if self.status is PositionStatus.CLOSED:
+            raise ValueError("Cannot modify a closed position.")
         return replace(self, delta=delta, gamma=gamma, theta=theta)
 
     def with_adjustment(self, notes: str = "") -> "Position":
-        new_notes = f"{self.notes}\n{notes}".strip() if notes else self.notes
+        if self.status is PositionStatus.CLOSED:
+            raise ValueError("Cannot modify a closed position.")
+        escaped = html_escape(notes) if notes else ""
+        new_notes = f"{self.notes}\n{escaped}".strip() if escaped else self.notes
         return replace(self, adjustments=self.adjustments + 1, notes=new_notes)
 
     def with_thesis_invalidated(self) -> "Position":
+        if self.status is PositionStatus.CLOSED:
+            raise ValueError("Cannot modify a closed position.")
         return replace(self, thesis_still_valid=False)
 
     def closed(self, exit_mark: float) -> "Position":
@@ -195,13 +205,13 @@ def create_position(
         id=uuid4().hex[:8],
         structure=structure,
         side=side,
-        description=description.strip(),
+        description=html_escape(description.strip()),
         contracts=contracts,
         entry_price=entry_price,
         current_mark=entry_price,
         max_loss_per_contract=max_loss_per_contract,
         target_per_contract=target_per_contract,
-        thesis=thesis.strip(),
+        thesis=html_escape(thesis.strip()),
         thesis_still_valid=True,
         delta=delta,
         gamma=gamma,
