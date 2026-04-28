@@ -2,6 +2,9 @@
 
 __all__ = [
     "calculators",
+    "fixtures",
+    "playbook",
+    "positions",
     "prompts",
     "reference",
     "rules",
