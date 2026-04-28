@@ -168,23 +168,88 @@ def _(reference_card_by_topic, reference_card_selector):
 @app.cell
 def _(mo, selected_reference_card):
     card = selected_reference_card
-    card_html = (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:10px;padding:14px">'
-        f'<div style="font-size:0.75em;text-transform:uppercase;color:#94a3b8;font-weight:600;letter-spacing:0.05em">What it means</div>'
-        f'<div style="margin-top:4px">{card.what_it_means}</div></div>'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:10px;padding:14px">'
-        f'<div style="font-size:0.75em;text-transform:uppercase;color:#94a3b8;font-weight:600;letter-spacing:0.05em">Why it matters 0DTE</div>'
-        f'<div style="margin-top:4px">{card.why_it_matters_0dte}</div></div>'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:10px;padding:14px">'
-        f'<div style="font-size:0.75em;text-transform:uppercase;color:#22c55e;font-weight:600;letter-spacing:0.05em">Operating implication</div>'
-        f'<div style="margin-top:4px">{card.operating_implication}</div></div>'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:10px;padding:14px">'
-        f'<div style="font-size:0.75em;text-transform:uppercase;color:#ef4444;font-weight:600;letter-spacing:0.05em">Common error</div>'
-        f'<div style="margin-top:4px">{card.common_error}</div></div>'
+
+    # ── Mental model callout ──
+    mental_model_html = ""
+    if card.mental_model:
+        mental_model_html = (
+            '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);'
+            'border-left:4px solid #818cf8;border-radius:10px;padding:16px;margin-bottom:16px">'
+            '<div style="font-size:0.75em;text-transform:uppercase;color:#818cf8;'
+            'font-weight:700;letter-spacing:0.08em;margin-bottom:6px">💡 Mental Model</div>'
+            f'<div style="color:#e2e8f0;font-style:italic;line-height:1.6">{card.mental_model}</div>'
+            '</div>'
+        )
+
+    # ── Deep dive section ──
+    deep_dive_html = ""
+    if card.deep_dive:
+        paragraphs = card.deep_dive.split("\n\n")
+        para_html = "".join(
+            f'<p style="margin:0 0 12px;line-height:1.7;color:#cbd5e1">{p}</p>'
+            for p in paragraphs
+        )
+        deep_dive_html = (
+            '<div style="background:var(--md-sys-color-surface-container);'
+            'border-radius:10px;padding:18px;margin-bottom:16px">'
+            '<div style="font-size:0.8em;text-transform:uppercase;color:#60a5fa;'
+            'font-weight:700;letter-spacing:0.06em;margin-bottom:10px">📖 Deep Dive</div>'
+            f'{para_html}'
+            '</div>'
+        )
+
+    # ── Key mechanics checklist ──
+    mechanics_html = ""
+    if card.key_mechanics:
+        items = "".join(
+            f'<div style="display:flex;gap:8px;align-items:baseline;margin-bottom:6px">'
+            f'<span style="color:#22c55e;font-size:0.9em;flex-shrink:0">▸</span>'
+            f'<span style="color:#e2e8f0;line-height:1.5">{m}</span></div>'
+            for m in card.key_mechanics
+        )
+        mechanics_html = (
+            '<div style="background:var(--md-sys-color-surface-container);'
+            'border-radius:10px;padding:18px;margin-bottom:16px">'
+            '<div style="font-size:0.8em;text-transform:uppercase;color:#22c55e;'
+            'font-weight:700;letter-spacing:0.06em;margin-bottom:10px">⚙️ Key Mechanics</div>'
+            f'{items}'
+            '</div>'
+        )
+
+    # ── Compact quick-reference grid (original 4 fields) ──
+    quick_ref_html = (
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
+        '<div style="font-size:0.7em;text-transform:uppercase;color:#94a3b8;'
+        'font-weight:600;letter-spacing:0.05em">What it means</div>'
+        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.what_it_means}</div></div>'
+        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
+        '<div style="font-size:0.7em;text-transform:uppercase;color:#94a3b8;'
+        'font-weight:600;letter-spacing:0.05em">Why it matters 0DTE</div>'
+        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.why_it_matters_0dte}</div></div>'
+        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
+        '<div style="font-size:0.7em;text-transform:uppercase;color:#22c55e;'
+        'font-weight:600;letter-spacing:0.05em">Operating implication</div>'
+        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.operating_implication}</div></div>'
+        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
+        '<div style="font-size:0.7em;text-transform:uppercase;color:#ef4444;'
+        'font-weight:600;letter-spacing:0.05em">Common error</div>'
+        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.common_error}</div></div>'
         '</div>'
-        f'<div style="margin-top:10px;color:#94a3b8;font-size:0.85em">'
+    )
+
+    # ── Verification inputs ──
+    verify_html = (
+        f'<div style="color:#94a3b8;font-size:0.85em;padding:0 4px">'
         f'<strong>Verify:</strong> {", ".join(card.verification_inputs)}</div>'
+    )
+
+    card_html = (
+        f'{mental_model_html}'
+        f'{deep_dive_html}'
+        f'{mechanics_html}'
+        f'{quick_ref_html}'
+        f'{verify_html}'
     )
     mo.Html(card_html)
     return
