@@ -11,6 +11,7 @@ This repo is a compact reference and workflow shell. It is not a signal engine, 
 - `rules.py`: Deterministic Rule Evaluation.
 - `fixtures.py`: Abstract Fixture States.
 - `calculators.py`: Mechanical Calculators.
+- `positions.py`: Position tracking, lifecycle helpers, and session summary math.
 - `playbook.py`: Inventory Adjustment Playbook.
 - `prompts.py`: Session-Specific Prompt Workflow.
 - `notebooks/spx_inventory_app.py`: marimo UI shell.
@@ -61,12 +62,18 @@ uv run marimo run notebooks/spx_inventory_app.py
 - Mechanical Calculators
 - Inventory Adjustment Playbook
 - Session-Specific Prompt Workflow
+- Position Entry
+- Manage Positions
+- Sidebar Dashboard / Position Summary
 
 ## Acceptance Checklist
 
 - `uv run pytest`
 - `uv run python notebooks/spx_inventory_app.py`
 - Browser review of dropdowns and calculators
+- Browser review of Position Entry add flow
+- Browser review of Manage Positions update, adjustment, thesis invalidation, and close flows
+- Browser review of Sidebar Dashboard / Position Summary updates after position changes
 - Confirm no fake market data appears
 - Confirm no recommendation language appears
 

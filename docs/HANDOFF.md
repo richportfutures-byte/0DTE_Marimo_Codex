@@ -5,7 +5,7 @@
 - Local branch: `main`
 - Remote tracking: `origin/main`
 - App entrypoint: `notebooks/spx_inventory_app.py`
-- Expected test count at time of writing: 89
+- Test count is intentionally not pinned here; run `uv run pytest`, or `uv run pytest --collect-only` if a count is needed.
 - The app is a marimo-based reference and operating framework for 0DTE SPX/SPXW inventory work.
 
 ## Module Responsibilities
@@ -15,9 +15,16 @@
 - `src/spx_inventory_playbook/rules.py`: deterministic permission logic for inventory actions.
 - `src/spx_inventory_playbook/fixtures.py`: abstract fixture states for tests and UI smoke paths.
 - `src/spx_inventory_playbook/calculators.py`: pure hedge and cost/friction calculators.
+- `src/spx_inventory_playbook/positions.py`: position tracking, lifecycle helpers, and session summary math.
 - `src/spx_inventory_playbook/playbook.py`: static operational playbook tables.
 - `src/spx_inventory_playbook/prompts.py`: copy-ready session prompt templates.
 - `tests/`: unit tests, row-count checks, compactness checks, and guardrail checks.
+
+## Notebook Position UI
+
+- Position Entry: user-supplied position form and add action.
+- Manage Positions: update mark, update Greeks, record adjustment, invalidate thesis, and close actions for open positions.
+- Sidebar Dashboard / Position Summary: session summary and open/closed position display.
 
 ## Verification Commands
 

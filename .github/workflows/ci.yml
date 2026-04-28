@@ -29,4 +29,4 @@ jobs:
         run: uv run pytest -v
 
       - name: Smoke test notebook script
-        run: uv run python notebooks/spx_inventory_app.py
+        run: timeout 30s uv run python notebooks/spx_inventory_app.py

@@ -40,6 +40,7 @@ def _(mo):
 @app.cell
 def _():
     from dataclasses import asdict
+    from html import escape as html_escape
 
     from spx_inventory_playbook.calculators import (
         calculate_futures_hedge,
@@ -118,6 +119,7 @@ def _():
         get_session_prompt_templates,
         get_structure_quick_reference,
         get_time_of_day_permission_matrix,
+        html_escape,
         time_urgency,
         validate_inventory_state,
     )
@@ -729,6 +731,8 @@ def _(mo, selected_prompt_template):
 @app.cell
 def _(mo, TimeWindow, TIME_WINDOW_LABELS):
     positions_state, set_positions = mo.state(())
+    add_click_state, set_add_click = mo.state(0)
+    manage_click_state, set_manage_click = mo.state({})
     daily_budget_input = mo.ui.number(
         value=2000.0, step=100.0, start=0.0,
         label="Daily loss budget ($)", full_width=True,
@@ -741,9 +745,24 @@ def _(mo, TimeWindow, TIME_WINDOW_LABELS):
     return (
         current_time_window_selector,
         daily_budget_input,
+        add_click_state,
+        set_add_click,
+        manage_click_state,
+        set_manage_click,
         positions_state,
         set_positions,
     )
+
+
+@app.cell
+def _():
+    def run_button_click_count(button):
+        frontend_count = getattr(button, "_value_frontend", None)
+        if frontend_count is not None:
+            return int(frontend_count or 0)
+        return 1 if button.value else 0
+
+    return (run_button_click_count,)
 
 
 # ── Position Entry Form ──
@@ -790,11 +809,6 @@ def _(
 @app.cell
 def _(
     mo,
-    pos_form,
-    positions_state,
-    set_positions,
-    create_position,
-    current_time_window_selector,
 ):
     add_button = mo.ui.run_button(label="Add Position")
     mo.hstack([add_button])
@@ -809,10 +823,15 @@ def _(
     set_positions,
     create_position,
     current_time_window_selector,
+    add_click_state,
+    set_add_click,
+    run_button_click_count,
     mo,
 ):
     add_msg = ""
-    if add_button.value:
+    click_count = run_button_click_count(add_button)
+    if click_count > add_click_state():
+        set_add_click(click_count)
         v = pos_form.value
         try:
             desc = v["description"] or ""
@@ -851,8 +870,18 @@ def _(
 
 
 @app.cell
-def _(mo, positions_state, set_positions, PositionStatus):
+def _(mo, positions_state, PositionStatus):
     open_positions = [p for p in positions_state() if p.status is PositionStatus.OPEN]
+    manage_selector = None
+    new_mark = None
+    new_delta = None
+    new_gamma = None
+    new_theta = None
+    update_mark_btn = None
+    update_greeks_btn = None
+    close_btn = None
+    invalidate_btn = None
+    adjust_btn = None
 
     if not open_positions:
         mo.output.replace(mo.md("*No open positions.*"))
@@ -870,30 +899,68 @@ def _(mo, positions_state, set_positions, PositionStatus):
         invalidate_btn = mo.ui.run_button(label="Invalidate Thesis")
         adjust_btn = mo.ui.run_button(label="Record Adjustment")
 
-        def _apply(fn):
-            pid = manage_selector.value
-            updated = tuple(
-                fn(p) if p.id == pid else p for p in positions_state()
-            )
-            set_positions(updated)
-
-        if update_mark_btn.value and manage_selector.value:
-            _apply(lambda p: p.with_mark(new_mark.value))
-        if update_greeks_btn.value and manage_selector.value:
-            _apply(lambda p: p.with_greeks(new_delta.value, new_gamma.value, new_theta.value))
-        if close_btn.value and manage_selector.value:
-            _apply(lambda p: p.closed(new_mark.value))
-        if invalidate_btn.value and manage_selector.value:
-            _apply(lambda p: p.with_thesis_invalidated())
-        if adjust_btn.value and manage_selector.value:
-            _apply(lambda p: p.with_adjustment())
-
         mo.vstack([
             mo.md("## \U0001f527 Manage Positions"),
             manage_selector,
             mo.hstack([new_mark, new_delta, new_gamma, new_theta]),
             mo.hstack([update_mark_btn, update_greeks_btn, close_btn, invalidate_btn, adjust_btn]),
         ])
+    return (
+        adjust_btn,
+        close_btn,
+        invalidate_btn,
+        manage_selector,
+        new_delta,
+        new_gamma,
+        new_mark,
+        new_theta,
+        update_greeks_btn,
+        update_mark_btn,
+    )
+
+
+@app.cell
+def _(
+    adjust_btn,
+    close_btn,
+    invalidate_btn,
+    manage_click_state,
+    manage_selector,
+    new_delta,
+    new_gamma,
+    new_mark,
+    new_theta,
+    positions_state,
+    run_button_click_count,
+    set_manage_click,
+    set_positions,
+    update_greeks_btn,
+    update_mark_btn,
+):
+    def _apply(fn):
+        pid = manage_selector.value
+        updated = tuple(fn(p) if p.id == pid else p for p in positions_state())
+        set_positions(updated)
+
+    def _handle_click(key, button, fn):
+        if button is None or manage_selector is None or not manage_selector.value:
+            return
+        click_count = run_button_click_count(button)
+        handled = manage_click_state().get(key, 0)
+        if click_count <= handled:
+            return
+        set_manage_click({**manage_click_state(), key: click_count})
+        _apply(fn)
+
+    _handle_click("update_mark", update_mark_btn, lambda p: p.with_mark(new_mark.value))
+    _handle_click(
+        "update_greeks",
+        update_greeks_btn,
+        lambda p: p.with_greeks(new_delta.value, new_gamma.value, new_theta.value),
+    )
+    _handle_click("close", close_btn, lambda p: p.closed(new_mark.value))
+    _handle_click("invalidate", invalidate_btn, lambda p: p.with_thesis_invalidated())
+    _handle_click("adjust", adjust_btn, lambda p: p.with_adjustment())
     return
 
 
@@ -907,6 +974,7 @@ def _(
     calculate_session_summary,
     daily_budget_input,
     current_time_window_selector,
+    html_escape,
     time_urgency,
     Urgency,
     PositionStatus,
@@ -973,9 +1041,10 @@ def _(
             urg = time_urgency(current_tw, p.close_by_time)
             pc = _pnl_color(p.total_pnl)
             pct_target = f"{p.pnl_pct_of_target:.0%}" if p.target_total else "--"
+            description = html_escape(p.description)
             sidebar_parts.append(
                 f'<div style="background:#1e293b;border-radius:6px;padding:8px;margin-bottom:6px">'
-                f'<div style="font-weight:600;margin-bottom:2px">{p.description}</div>'
+                f'<div style="font-weight:600;margin-bottom:2px">{description}</div>'
                 f'<div style="font-size:1.1em;color:{pc};font-weight:700">{"" if p.total_pnl < 0 else "+"}${p.total_pnl:,.0f}</div>'
                 f'<div style="color:#94a3b8;font-size:0.8em">'
                 f'{p.contracts}c | \u0394{p.net_delta:+.2f} | target {pct_target} | {_urgency_badge(urg)}'

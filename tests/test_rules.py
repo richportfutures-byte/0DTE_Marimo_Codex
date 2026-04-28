@@ -4,6 +4,8 @@ from spx_inventory_playbook.fixtures import (
     final_five_minutes_state,
     lockout_state,
     loss_avoidance_state,
+    near_flip_unclear_state,
+    negative_gex_credit_spread_state,
     poor_liquidity_state,
     rule_violation_state,
     size_exceeds_plan_state,
@@ -24,6 +26,7 @@ from spx_inventory_playbook.validators import (
     ValidationMessage,
     ValidationResult,
     ValidationSeverity,
+    validate_inventory_state,
 )
 
 
@@ -55,6 +58,17 @@ def test_allowed_actions_collapse_for_behavior_not_authorized() -> None:
     assert allowed_actions_from_validation(validation_result_with_code("BEHAVIOR_NOT_AUTHORIZED")) == {
         Action.REDUCE,
         Action.CLOSE,
+        Action.EMERGENCY_FLATTEN,
+        Action.HEDGE_MES_ES,
+        Action.STOP_TRADING,
+    }
+
+
+def test_allowed_actions_collapse_for_rule_violation() -> None:
+    assert allowed_actions_from_validation(validation_result_with_code("RULE_VIOLATION")) == {
+        Action.REDUCE,
+        Action.CLOSE,
+        Action.EMERGENCY_FLATTEN,
         Action.HEDGE_MES_ES,
         Action.STOP_TRADING,
     }
@@ -71,6 +85,28 @@ def test_allowed_actions_collapse_for_thesis_invalidated() -> None:
 
 def test_allowed_actions_are_broad_for_clean_validation() -> None:
     assert allowed_actions_from_validation(ValidationResult(messages=[])) == FULL_DISCRETIONARY_ACTIONS
+
+
+def test_allowed_actions_dispatch_matches_rule_evaluation_for_fixture_states() -> None:
+    fixture_states = (
+        clean_state(),
+        lockout_state(),
+        behavior_not_authorized_state(),
+        rule_violation_state(),
+        thesis_invalidated_state(),
+        poor_liquidity_state(),
+        final_five_minutes_state(),
+        size_exceeds_plan_state(),
+        loss_avoidance_state(),
+        negative_gex_credit_spread_state(),
+        near_flip_unclear_state(),
+    )
+
+    for state in fixture_states:
+        assert (
+            allowed_actions_from_validation(validate_inventory_state(state))
+            == evaluate_inventory_rules(state).allowed_actions
+        )
 
 
 def test_clean_state_returns_normal_and_full_discretionary_set() -> None:
@@ -102,6 +138,7 @@ def test_behavior_not_authorized_blocks_convert_restructure() -> None:
     assert Action.HOLD in decision.blocked_actions
     assert Action.REDUCE in decision.allowed_actions
     assert Action.CLOSE in decision.allowed_actions
+    assert Action.EMERGENCY_FLATTEN in decision.allowed_actions
 
 
 def test_rule_violation_blocks_convert_restructure() -> None:
@@ -110,6 +147,7 @@ def test_rule_violation_blocks_convert_restructure() -> None:
     assert decision.severity is DecisionSeverity.BLOCKED
     assert Action.CONVERT_RESTRUCTURE in decision.blocked_actions
     assert Action.REDUCE in decision.allowed_actions
+    assert Action.EMERGENCY_FLATTEN in decision.allowed_actions
     assert Action.STOP_TRADING in decision.allowed_actions
 
 

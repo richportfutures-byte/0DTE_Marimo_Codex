@@ -154,6 +154,8 @@ class Position:
         return replace(self, thesis_still_valid=False)
 
     def closed(self, exit_mark: float) -> "Position":
+        if self.status is PositionStatus.CLOSED:
+            raise ValueError("Position is already closed.")
         return replace(self, current_mark=exit_mark, status=PositionStatus.CLOSED)
 
 
@@ -215,8 +217,13 @@ def create_position(
 
 def time_urgency(current_window: TimeWindow, close_by: TimeWindow) -> Urgency:
     """Compute urgency from current time window vs position close-by-time."""
-    current_idx = _WINDOW_INDEX.get(current_window, 0)
-    close_idx = _WINDOW_INDEX.get(close_by, 0)
+    if current_window not in _WINDOW_INDEX:
+        raise ValueError(f"Unsupported current_window: {current_window!r}")
+    if close_by not in _WINDOW_INDEX:
+        raise ValueError(f"Unsupported close_by: {close_by!r}")
+
+    current_idx = _WINDOW_INDEX[current_window]
+    close_idx = _WINDOW_INDEX[close_by]
     remaining = close_idx - current_idx
     if remaining <= 0:
         return Urgency.CRITICAL

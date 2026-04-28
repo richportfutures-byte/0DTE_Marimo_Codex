@@ -3,10 +3,9 @@ name = "codex-0dte-notebook"
 version = "0.1.0"
 description = "A marimo reference app scaffold for 0DTE SPX/SPXW inventory workflows."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "marimo",
-    "pandas",
 ]
 
 [dependency-groups]
