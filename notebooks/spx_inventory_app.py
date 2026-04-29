@@ -4,6 +4,11 @@ __generated_with = "0.21.1"
 app = marimo.App(width="full")
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Bootstrap
+# ──────────────────────────────────────────────────────────────────────────────
+
+
 @app.cell
 def _():
     import marimo as mo
@@ -13,26 +18,79 @@ def _():
 
 @app.cell
 def _(mo):
+    # Restrained "operator console" styling. Defines a small set of utility
+    # classes used throughout the app for header, sections, cards, chips, and
+    # severity banners. Kept intentionally calm — no neon, no gradients beyond
+    # subtle tinted backgrounds.
     mo.Html(
-        '<div style="text-align:center;padding:24px 0 8px">'
-        '<div style="font-size:2em;font-weight:800;letter-spacing:-0.02em">'
-        '\U0001f3af 0DTE SPX Inventory Workstation</div>'
-        '<div style="color:#94a3b8;font-size:0.95em;margin-top:4px">'
-        'Operating reference &bull; Position tracker &bull; Rule engine &bull; Calculators</div>'
-        '</div>'
-    )
-    return
-
-
-@app.cell
-def _(mo):
-    mo.callout(
-        mo.md(
-            "**Safety boundaries:** No live market data. No fabricated Greeks, "
-            "bid/asks, fills, strikes, or P/L. No automated trade recommendations. "
-            "User-supplied inputs only. Not personalized financial advice."
-        ),
-        kind="warn",
+        """<style>
+        .app-shell{padding:0 4px}
+        .app-header{display:flex;align-items:center;gap:14px;padding:12px 16px;
+          border:1px solid var(--md-sys-color-outline-variant,#334155);
+          border-radius:10px;
+          background:var(--md-sys-color-surface-container-low,#0f172a)}
+        .app-header__title{font-size:1.05em;font-weight:700;letter-spacing:-0.01em;
+          color:var(--md-sys-color-on-surface,#e2e8f0)}
+        .app-header__subtitle{color:#94a3b8;font-size:0.78em;margin-top:2px}
+        .app-header__pills{margin-left:auto;display:flex;gap:8px;
+          align-items:center;flex-wrap:wrap;justify-content:flex-end}
+        .app-pill{display:inline-flex;align-items:center;gap:6px;
+          background:var(--md-sys-color-surface-container,#1e293b);
+          color:var(--md-sys-color-on-surface,#e2e8f0);
+          border:1px solid var(--md-sys-color-outline-variant,#334155);
+          padding:4px 10px;border-radius:6px;font-size:0.8em;font-weight:500}
+        .app-pill__label{color:#94a3b8;font-size:0.72em;text-transform:uppercase;
+          letter-spacing:0.06em;font-weight:600}
+        .app-pill__value{font-weight:700;font-variant-numeric:tabular-nums}
+        .app-ribbon{padding:6px 12px;border-radius:6px;font-size:0.78em;
+          color:#94a3b8;
+          background:var(--md-sys-color-surface-container-lowest,#0b1220);
+          border:1px dashed var(--md-sys-color-outline-variant,#334155);
+          margin:8px 0 14px}
+        .app-section{margin:18px 0 6px;padding:0 4px;
+          display:flex;align-items:center;gap:10px}
+        .app-section__title{font-size:0.78em;font-weight:700;letter-spacing:0.1em;
+          text-transform:uppercase;color:#94a3b8}
+        .app-section__rule{flex:1;height:1px;
+          background:var(--md-sys-color-outline-variant,#334155)}
+        .app-card{background:var(--md-sys-color-surface-container,#1e293b);
+          border:1px solid var(--md-sys-color-outline-variant,#334155);
+          border-radius:10px;padding:14px;margin:6px 0}
+        .app-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+        .app-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+        .app-stat{background:var(--md-sys-color-surface-container-high,#1e293b);
+          border-radius:8px;padding:10px;
+          border:1px solid var(--md-sys-color-outline-variant,#334155)}
+        .app-stat__label{color:#94a3b8;font-size:0.72em;text-transform:uppercase;
+          letter-spacing:0.06em;font-weight:600}
+        .app-stat__value{margin-top:4px;color:#e2e8f0;font-size:0.95em;
+          font-variant-numeric:tabular-nums}
+        .app-severity{display:flex;align-items:center;gap:14px;
+          padding:14px 16px;border-radius:10px;border:1px solid;margin-bottom:10px}
+        .app-severity__badge{font-weight:800;font-size:0.78em;letter-spacing:0.1em;
+          text-transform:uppercase;padding:4px 10px;border-radius:6px;color:#0b1220}
+        .app-severity__title{font-size:1em;font-weight:700;color:#e2e8f0}
+        .app-severity__subtitle{color:#94a3b8;font-size:0.85em;margin-top:2px}
+        .app-severity--normal{border-color:#1f5132;background:rgba(34,197,94,0.07)}
+        .app-severity--caution{border-color:#7a5b15;background:rgba(250,204,21,0.07)}
+        .app-severity--restricted{border-color:#7c4214;background:rgba(251,146,60,0.07)}
+        .app-severity--blocked{border-color:#7f1d1d;background:rgba(239,68,68,0.08)}
+        .app-chip{display:inline-flex;align-items:center;padding:3px 9px;
+          border-radius:14px;font-size:0.78em;font-weight:600;border:1px solid;
+          margin:2px 4px 2px 0;font-variant-numeric:tabular-nums}
+        .app-chip--allowed{color:#86efac;border-color:#1f5132;
+          background:rgba(34,197,94,0.07)}
+        .app-chip--blocked{color:#fca5a5;border-color:#7f1d1d;
+          background:rgba(239,68,68,0.07)}
+        .app-muted{color:#94a3b8;font-size:0.85em}
+        .app-list{margin:6px 0 0;padding:0;list-style:none}
+        .app-list li{padding:5px 0;color:#cbd5e1;
+          border-top:1px dashed var(--md-sys-color-outline-variant,#334155)}
+        .app-list li:first-child{border-top:none}
+        .app-mental{background:rgba(99,102,241,0.07);
+          border-left:3px solid #818cf8;border-radius:8px;
+          padding:14px;margin-bottom:12px}
+        </style>"""
     )
     return
 
@@ -125,164 +183,133 @@ def _():
     )
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Session state — created early so the header can read window/budget values
+# ──────────────────────────────────────────────────────────────────────────────
+
+
 @app.cell
-def _(mo):
-    mo.md("---")
+def _(mo, TimeWindow, TIME_WINDOW_LABELS):
+    positions_state, set_positions = mo.state(())
+    add_click_state, set_add_click = mo.state(0)
+    manage_click_state, set_manage_click = mo.state({})
+    daily_budget_input = mo.ui.number(
+        value=2000.0,
+        step=100.0,
+        start=0.0,
+        label="Daily loss budget ($)",
+        full_width=True,
+    )
+    current_time_window_selector = mo.ui.dropdown(
+        options={TIME_WINDOW_LABELS[tw]: tw for tw in TimeWindow},
+        value="Morning 9:45–10:30",
+        label="Current time window",
+    )
+    return (
+        current_time_window_selector,
+        daily_budget_input,
+        add_click_state,
+        set_add_click,
+        manage_click_state,
+        set_manage_click,
+        positions_state,
+        set_positions,
+    )
+
+
+@app.cell
+def _():
+    def run_button_click_count(button):
+        frontend_count = getattr(button, "_value_frontend", None)
+        if frontend_count is not None:
+            return int(frontend_count or 0)
+        return 1 if button.value else 0
+
+    return (run_button_click_count,)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Header strip + safety ribbon
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.cell
+def _(
+    mo,
+    PositionStatus,
+    TIME_WINDOW_LABELS,
+    calculate_session_summary,
+    current_time_window_selector,
+    daily_budget_input,
+    positions_state,
+):
+    _summary_for_header = calculate_session_summary(
+        positions_state(), daily_budget_input.value or 2000.0
+    )
+    _open_count = sum(
+        1 for p in positions_state() if p.status is PositionStatus.OPEN
+    )
+    _net = _summary_for_header.net_pnl
+    _pnl_color = "#22c55e" if _net > 0 else ("#ef4444" if _net < 0 else "#94a3b8")
+    _pnl_sign = "" if _net < 0 else "+"
+    _budget_pct = _summary_for_header.budget_used_pct
+    _budget_color = (
+        "#22c55e"
+        if _budget_pct < 0.5
+        else "#facc15"
+        if _budget_pct < 0.8
+        else "#ef4444"
+    )
+    _tw_label = TIME_WINDOW_LABELS.get(current_time_window_selector.value, "—")
+
+    mo.Html(
+        '<div class="app-shell"><div class="app-header">'
+        '<div>'
+        '<div class="app-header__title">0DTE SPX Inventory Workstation</div>'
+        '<div class="app-header__subtitle">'
+        'Operator console &middot; rule engine &middot; position tracker'
+        '</div></div>'
+        '<div class="app-header__pills">'
+        '<span class="app-pill"><span class="app-pill__label">Window</span>'
+        f'<span class="app-pill__value">{_tw_label}</span></span>'
+        '<span class="app-pill"><span class="app-pill__label">Open</span>'
+        f'<span class="app-pill__value">{_open_count}</span></span>'
+        '<span class="app-pill"><span class="app-pill__label">Net P&amp;L</span>'
+        f'<span class="app-pill__value" style="color:{_pnl_color}">'
+        f'{_pnl_sign}${_net:,.0f}</span></span>'
+        '<span class="app-pill"><span class="app-pill__label">Budget used</span>'
+        f'<span class="app-pill__value" style="color:{_budget_color}">'
+        f'{_budget_pct:.0%}</span></span>'
+        '</div></div></div>'
+    )
     return
 
 
 @app.cell
-def _(get_reference_cards):
-    reference_cards = get_reference_cards()
-    reference_card_by_topic = {
-        reference_card.topic: reference_card for reference_card in reference_cards
-    }
-    return reference_card_by_topic, reference_cards
-
-
-@app.cell
-def _(mo, reference_card_by_topic):
-    reference_card_selector = mo.ui.dropdown(
-        options=list(reference_card_by_topic),
-        value="Dealer gamma / GEX",
-        label="Select topic",
-    )
-    mo.hstack(
-        [
-            mo.md("## \U0001f4da Reference Cards"),
-            reference_card_selector,
-        ],
-        justify="start",
-        gap=1,
-        align="end",
-    )
-    return (reference_card_selector,)
-
-
-@app.cell
-def _(reference_card_by_topic, reference_card_selector):
-    selected_reference_card = reference_card_by_topic[reference_card_selector.value]
-    return (selected_reference_card,)
-
-
-@app.cell
-def _(mo, selected_reference_card):
-    card = selected_reference_card
-
-    # ── Mental model callout ──
-    mental_model_html = ""
-    if card.mental_model:
-        mental_model_html = (
-            '<div style="background:linear-gradient(135deg,#1e293b,#0f172a);'
-            'border-left:4px solid #818cf8;border-radius:10px;padding:16px;margin-bottom:16px">'
-            '<div style="font-size:0.75em;text-transform:uppercase;color:#818cf8;'
-            'font-weight:700;letter-spacing:0.08em;margin-bottom:6px">💡 Mental Model</div>'
-            f'<div style="color:#e2e8f0;font-style:italic;line-height:1.6">{card.mental_model}</div>'
-            '</div>'
-        )
-
-    # ── Deep dive section ──
-    deep_dive_html = ""
-    if card.deep_dive:
-        paragraphs = card.deep_dive.split("\n\n")
-        para_html = "".join(
-            f'<p style="margin:0 0 12px;line-height:1.7;color:#cbd5e1">{p}</p>'
-            for p in paragraphs
-        )
-        deep_dive_html = (
-            '<div style="background:var(--md-sys-color-surface-container);'
-            'border-radius:10px;padding:18px;margin-bottom:16px">'
-            '<div style="font-size:0.8em;text-transform:uppercase;color:#60a5fa;'
-            'font-weight:700;letter-spacing:0.06em;margin-bottom:10px">📖 Deep Dive</div>'
-            f'{para_html}'
-            '</div>'
-        )
-
-    # ── Key mechanics checklist ──
-    mechanics_html = ""
-    if card.key_mechanics:
-        items = "".join(
-            f'<div style="display:flex;gap:8px;align-items:baseline;margin-bottom:6px">'
-            f'<span style="color:#22c55e;font-size:0.9em;flex-shrink:0">▸</span>'
-            f'<span style="color:#e2e8f0;line-height:1.5">{m}</span></div>'
-            for m in card.key_mechanics
-        )
-        mechanics_html = (
-            '<div style="background:var(--md-sys-color-surface-container);'
-            'border-radius:10px;padding:18px;margin-bottom:16px">'
-            '<div style="font-size:0.8em;text-transform:uppercase;color:#22c55e;'
-            'font-weight:700;letter-spacing:0.06em;margin-bottom:10px">⚙️ Key Mechanics</div>'
-            f'{items}'
-            '</div>'
-        )
-
-    # ── Compact quick-reference grid (original 4 fields) ──
-    quick_ref_html = (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
-        '<div style="font-size:0.7em;text-transform:uppercase;color:#94a3b8;'
-        'font-weight:600;letter-spacing:0.05em">What it means</div>'
-        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.what_it_means}</div></div>'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
-        '<div style="font-size:0.7em;text-transform:uppercase;color:#94a3b8;'
-        'font-weight:600;letter-spacing:0.05em">Why it matters 0DTE</div>'
-        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.why_it_matters_0dte}</div></div>'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
-        '<div style="font-size:0.7em;text-transform:uppercase;color:#22c55e;'
-        'font-weight:600;letter-spacing:0.05em">Operating implication</div>'
-        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.operating_implication}</div></div>'
-        '<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:12px">'
-        '<div style="font-size:0.7em;text-transform:uppercase;color:#ef4444;'
-        'font-weight:600;letter-spacing:0.05em">Common error</div>'
-        f'<div style="margin-top:4px;color:#e2e8f0;font-size:0.9em">{card.common_error}</div></div>'
+def _(mo):
+    mo.Html(
+        '<div class="app-ribbon">'
+        '<strong>Safety boundaries:</strong> '
+        'No live market data. No fabricated Greeks, bid/asks, fills, strikes, '
+        'or P/L. No automated trade recommendations. User-supplied inputs only. '
+        'Not personalized financial advice.'
         '</div>'
     )
-
-    # ── Verification inputs ──
-    verify_html = (
-        f'<div style="color:#94a3b8;font-size:0.85em;padding:0 4px">'
-        f'<strong>Verify:</strong> {", ".join(card.verification_inputs)}</div>'
-    )
-
-    card_html = (
-        f'{mental_model_html}'
-        f'{deep_dive_html}'
-        f'{mechanics_html}'
-        f'{quick_ref_html}'
-        f'{verify_html}'
-    )
-    mo.Html(card_html)
     return
 
 
-@app.cell
-def _(mo, reference_cards):
-    reference_overview_rows = [
-        {
-            "topic": rc.topic,
-            "operating implication": rc.operating_implication,
-            "common error": rc.common_error,
-        }
-        for rc in reference_cards
-    ]
-    mo.accordion(
-        {
-            "\U0001f4cb All 12 Reference Cards": mo.ui.table(
-                reference_overview_rows,
-                pagination=False,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
-            ),
-        }
-    )
-    return
+# ──────────────────────────────────────────────────────────────────────────────
+# Decision Console — primary output, sits at the top of the working area
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
 def _(mo):
-    mo.md("---")
+    mo.Html(
+        '<div class="app-section">'
+        '<div class="app-section__title">Decision Console</div>'
+        '<div class="app-section__rule"></div></div>'
+    )
     return
 
 
@@ -291,15 +318,20 @@ def _(fixture_factories, mo):
     fixture_selector = mo.ui.dropdown(
         options=list(fixture_factories),
         value="Clean state",
-        label="Select state",
-    )
-    mo.hstack(
-        [mo.md("## \u2696\ufe0f Rule Engine"), fixture_selector],
-        justify="start",
-        gap=1,
-        align="end",
+        label="Inventory state fixture",
     )
     return (fixture_selector,)
+
+
+@app.cell
+def _(current_time_window_selector, daily_budget_input, fixture_selector, mo):
+    mo.hstack(
+        [fixture_selector, current_time_window_selector, daily_budget_input],
+        gap=1,
+        justify="start",
+        wrap=True,
+    )
+    return
 
 
 @app.cell
@@ -316,66 +348,273 @@ def _(evaluate_inventory_rules, selected_state, validate_inventory_state):
 
 
 @app.cell
-def _(mo, rule_decision, validation_result, selected_state):
-    sev = rule_decision.severity.value
-    sev_colors = {
-        "normal": ("#22c55e", "success"),
-        "caution": ("#facc15", "warn"),
-        "restricted": ("#fb923c", "warn"),
-        "blocked": ("#ef4444", "danger"),
+def _(mo, rule_decision, selected_state, validation_result):
+    _sev = rule_decision.severity.value
+    _sev_meta = {
+        "normal": {
+            "badge": "#22c55e",
+            "title": "Action allowed",
+            "subtitle": "No rule blockers detected.",
+            "modifier": "normal",
+        },
+        "caution": {
+            "badge": "#facc15",
+            "title": "Caution",
+            "subtitle": "Discretionary actions allowed with constraints.",
+            "modifier": "caution",
+        },
+        "restricted": {
+            "badge": "#fb923c",
+            "title": "Restricted action set",
+            "subtitle": "Action permissions reduced by current state.",
+            "modifier": "restricted",
+        },
+        "blocked": {
+            "badge": "#ef4444",
+            "title": "Action blocked",
+            "subtitle": "Discretionary inventory adjustment is blocked.",
+            "modifier": "blocked",
+        },
     }
-    sev_color, sev_kind = sev_colors.get(sev, ("#94a3b8", "info"))
-
-    allowed = ", ".join(sorted(a.value.replace("_", " ") for a in rule_decision.allowed_actions))
-    blocked = ", ".join(sorted(a.value.replace("_", " ") for a in rule_decision.blocked_actions)) or "none"
-
-    severity_badge = (
-        f'<span style="background:{sev_color};color:#000;padding:3px 10px;'
-        f'border-radius:6px;font-weight:700;font-size:0.85em;text-transform:uppercase">{sev}</span>'
+    _meta = _sev_meta.get(
+        _sev,
+        {
+            "badge": "#94a3b8",
+            "title": _sev.title(),
+            "subtitle": "",
+            "modifier": "normal",
+        },
     )
 
-    # Validation messages as callouts
-    val_elements = []
-    for msg in validation_result.messages:
-        kind = {"blocker": "danger", "warning": "warn", "info": "info"}.get(msg.severity.value, "info")
-        val_elements.append(
-            mo.callout(mo.md(f"**{msg.code}** — {msg.message}"), kind=kind)
-        )
-    if not val_elements:
-        val_elements.append(mo.callout(mo.md("No validation issues."), kind="success"))
+    _allowed_actions = sorted(
+        a.value.replace("_", " ") for a in rule_decision.allowed_actions
+    )
+    _blocked_actions = sorted(
+        a.value.replace("_", " ") for a in rule_decision.blocked_actions
+    )
 
-    # State summary in compact grid
-    s = selected_state
-    ok_icon = "\u2705"
-    fail_icon = "\u274c"
-    stop_icon = "\U0001f6d1"
-    thesis_valid = ok_icon if s.position.thesis_valid else fail_icon
-    behavior_auth = ok_icon if s.behavior.behavior_authorized else fail_icon
-    lockout = stop_icon if s.behavior.daily_lockout_active or s.behavior.weekly_lockout_active else f"{ok_icon} None"
-    state_html = (
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:0.85em">'
-        f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Dealer Regime</div>{s.market.dealer_regime.value}</div>'
-        f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Time Window</div>{s.market.time_window.value}</div>'
-        f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Structure</div>{s.position.structure.value}</div>'
-        f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Thesis Valid</div>{thesis_valid}</div>'
-        f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Behavior Auth</div>{behavior_auth}</div>'
-        f'<div style="background:var(--md-sys-color-surface-container);border-radius:8px;padding:10px">'
-        f'<div style="color:#94a3b8;font-size:0.8em">Lockout</div>{lockout}</div>'
+    _allowed_chips = (
+        "".join(
+            f'<span class="app-chip app-chip--allowed">{a}</span>'
+            for a in _allowed_actions
+        )
+        or '<span class="app-muted">—</span>'
+    )
+    _blocked_chips = (
+        "".join(
+            f'<span class="app-chip app-chip--blocked">{a}</span>'
+            for a in _blocked_actions
+        )
+        or '<span class="app-muted">none</span>'
+    )
+
+    _severity_html = (
+        f'<div class="app-severity app-severity--{_meta["modifier"]}">'
+        f'<span class="app-severity__badge" style="background:{_meta["badge"]}">'
+        f'{_sev}</span>'
+        '<div>'
+        f'<div class="app-severity__title">{_meta["title"]}</div>'
+        f'<div class="app-severity__subtitle">{_meta["subtitle"]}</div>'
+        '</div></div>'
+    )
+
+    _actions_html = (
+        '<div class="app-grid-2">'
+        '<div><div class="app-stat__label">Allowed actions</div>'
+        f'<div style="margin-top:6px">{_allowed_chips}</div></div>'
+        '<div><div class="app-stat__label">Blocked actions</div>'
+        f'<div style="margin-top:6px">{_blocked_chips}</div></div>'
         '</div>'
     )
 
+    _reason_items = "".join(f"<li>{r}</li>" for r in rule_decision.reasons)
+    _warning_items = "".join(f"<li>{w}</li>" for w in rule_decision.warnings)
+    _reasoning_parts = []
+    if _reason_items:
+        _reasoning_parts.append(
+            '<div><div class="app-stat__label">Why</div>'
+            f'<ul class="app-list">{_reason_items}</ul></div>'
+        )
+    if _warning_items:
+        _reasoning_parts.append(
+            '<div><div class="app-stat__label">Warnings</div>'
+            f'<ul class="app-list">{_warning_items}</ul></div>'
+        )
+    _reasoning_html = (
+        '<div class="app-grid-2" style="margin-top:10px">'
+        + "".join(_reasoning_parts)
+        + '</div>'
+    ) if _reasoning_parts else ""
+
+    _s = selected_state
+    _ok = "✅"
+    _fail = "❌"
+    _stop = "\U0001f6d1"
+    _thesis_valid = _ok if _s.position.thesis_valid else _fail
+    _behavior_auth = _ok if _s.behavior.behavior_authorized else _fail
+    _lockout = (
+        _stop
+        if _s.behavior.daily_lockout_active or _s.behavior.weekly_lockout_active
+        else f"{_ok} None"
+    )
+    _state_html = (
+        '<div class="app-grid-3">'
+        '<div class="app-stat"><div class="app-stat__label">Dealer regime</div>'
+        f'<div class="app-stat__value">{_s.market.dealer_regime.value}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Time window</div>'
+        f'<div class="app-stat__value">{_s.market.time_window.value}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Structure</div>'
+        f'<div class="app-stat__value">{_s.position.structure.value}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Thesis valid</div>'
+        f'<div class="app-stat__value">{_thesis_valid}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Behavior auth</div>'
+        f'<div class="app-stat__value">{_behavior_auth}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Lockout</div>'
+        f'<div class="app-stat__value">{_lockout}</div></div>'
+        '</div>'
+    )
+
+    _val_elements = []
+    for _msg in validation_result.messages:
+        _kind = {"blocker": "danger", "warning": "warn", "info": "info"}.get(
+            _msg.severity.value, "info"
+        )
+        _val_elements.append(
+            mo.callout(mo.md(f"**{_msg.code}** — {_msg.message}"), kind=_kind)
+        )
+    if not _val_elements:
+        _val_elements.append(
+            mo.callout(mo.md("No validation issues."), kind="success")
+        )
+
     mo.vstack(
         [
-            mo.hstack([mo.md("### Decision"), mo.Html(severity_badge)], justify="start", gap=0.5, align="center"),
-            mo.Html(state_html),
-            *val_elements,
-            mo.md(f"**Allowed:** {allowed}"),
-            mo.md(f"**Blocked:** {blocked}") if blocked != "none" else mo.md(""),
+            mo.Html(_severity_html + _actions_html + _reasoning_html),
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:14px 0 6px;padding:0 4px">Inventory state</div>'
+            ),
+            mo.Html(_state_html),
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:14px 0 6px;padding:0 4px">Validation</div>'
+            ),
+            *_val_elements,
+        ]
+    )
+    return
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Position Tracker — entry + manage
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.cell
+def _(mo):
+    mo.Html(
+        '<div class="app-section">'
+        '<div class="app-section__title">Position Tracker</div>'
+        '<div class="app-section__rule"></div></div>'
+    )
+    return
+
+
+@app.cell
+def _(
+    PositionSide,
+    PositionStructure,
+    TIME_WINDOW_LABELS,
+    TimeWindow,
+    mo,
+):
+    structure_options = {
+        s.value.replace("_", " ").title(): s for s in PositionStructure
+    }
+    side_options = {s.value.title(): s for s in PositionSide}
+    close_by_options = {TIME_WINDOW_LABELS[tw]: tw for tw in TimeWindow}
+
+    pos_form = mo.ui.dictionary(
+        {
+            "structure": mo.ui.dropdown(
+                options=structure_options, label="Structure"
+            ),
+            "side": mo.ui.dropdown(
+                options=side_options, value="Credit", label="Side"
+            ),
+            "description": mo.ui.text(label="Description", full_width=True),
+            "contracts": mo.ui.number(
+                start=1, value=1, step=1, label="Contracts"
+            ),
+            "entry_price": mo.ui.number(
+                value=0.0, step=0.05, label="Entry price (per contract)"
+            ),
+            "max_loss": mo.ui.number(
+                value=0.0, step=0.50, label="Max loss (per contract)"
+            ),
+            "target": mo.ui.number(
+                value=0.0, step=0.25, label="Target profit (per contract)"
+            ),
+            "thesis": mo.ui.text(label="Thesis", full_width=True),
+            "close_by": mo.ui.dropdown(
+                options=close_by_options,
+                value="Final Hour 15:15–15:45",
+                label="Close by",
+            ),
+            "delta": mo.ui.number(value=0.0, step=0.01, label="Delta"),
+            "gamma": mo.ui.number(value=0.0, step=0.01, label="Gamma"),
+            "theta": mo.ui.number(value=0.0, step=0.01, label="Theta"),
+            "friction": mo.ui.number(
+                value=0.0, step=1.0, start=0.0, label="Friction paid ($)"
+            ),
+        }
+    )
+    return (pos_form,)
+
+
+@app.cell
+def _(mo, pos_form):
+    # Render the dictionary's children in operationally-grouped sections.
+    # `pos_form.value` continues to expose the same flat dict the add-handler
+    # consumes — only the rendering layout changes.
+    mo.vstack(
+        [
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:4px 0 4px;padding:0 4px">Identity</div>'
+            ),
+            mo.hstack(
+                [pos_form["structure"], pos_form["side"], pos_form["close_by"]],
+                gap=1,
+                wrap=True,
+            ),
+            pos_form["description"],
+            pos_form["thesis"],
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:10px 0 4px;padding:0 4px">'
+                'Sizing &amp; risk (per contract)</div>'
+            ),
+            mo.hstack(
+                [pos_form["contracts"], pos_form["entry_price"]],
+                gap=1,
+                wrap=True,
+            ),
+            mo.hstack(
+                [pos_form["max_loss"], pos_form["target"], pos_form["friction"]],
+                gap=1,
+                wrap=True,
+            ),
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:10px 0 4px;padding:0 4px">'
+                'Greeks (per contract)</div>'
+            ),
+            mo.hstack(
+                [pos_form["delta"], pos_form["gamma"], pos_form["theta"]],
+                gap=1,
+                wrap=True,
+            ),
         ]
     )
     return
@@ -383,21 +622,229 @@ def _(mo, rule_decision, validation_result, selected_state):
 
 @app.cell
 def _(mo):
-    mo.md("---")
+    add_button = mo.ui.run_button(label="Add Position")
+    mo.hstack([add_button], justify="start")
+    return (add_button,)
+
+
+@app.cell
+def _(
+    add_button,
+    add_click_state,
+    create_position,
+    current_time_window_selector,
+    html_escape,
+    mo,
+    pos_form,
+    positions_state,
+    run_button_click_count,
+    set_add_click,
+    set_positions,
+):
+    add_msg = ""
+    click_count = run_button_click_count(add_button)
+    if click_count > add_click_state():
+        set_add_click(click_count)
+        v = pos_form.value
+        try:
+            desc = v["description"] or ""
+            thesis = v["thesis"] or ""
+            if not desc.strip() or not thesis.strip():
+                raise ValueError("Description and thesis are required.")
+            contracts_val = v["contracts"]
+            if isinstance(contracts_val, float) and contracts_val.is_integer():
+                contracts_val = int(contracts_val)
+            new_pos = create_position(
+                structure=v["structure"],
+                side=v["side"],
+                description=desc,
+                contracts=contracts_val,
+                entry_price=v["entry_price"],
+                max_loss_per_contract=v["max_loss"],
+                target_per_contract=v["target"],
+                thesis=thesis,
+                close_by_time=v["close_by"],
+                entry_time_window=current_time_window_selector.value,
+                delta=v["delta"],
+                gamma=v["gamma"],
+                theta=v["theta"],
+                friction_paid=v["friction"],
+            )
+            set_positions(positions_state() + (new_pos,))
+            add_msg = f"✅ Added: {html_escape(desc)}"
+        except (ValueError, KeyError, TypeError) as exc:
+            add_msg = f"❌ Error: {exc}"
+    if add_msg:
+        mo.output.replace(mo.md(f"**{add_msg}**"))
     return
 
 
 @app.cell
-def _(mo):
-    mo.md("## \U0001f9ee Calculators")
+def _(PositionStatus, mo, positions_state):
+    open_positions = [p for p in positions_state() if p.status is PositionStatus.OPEN]
+    manage_selector = None
+    new_mark = None
+    new_delta = None
+    new_gamma = None
+    new_theta = None
+    update_mark_btn = None
+    update_greeks_btn = None
+    close_btn = None
+    invalidate_btn = None
+    adjust_btn = None
+
+    if not open_positions:
+        mo.output.replace(
+            mo.vstack(
+                [
+                    mo.Html(
+                        '<div class="app-stat__label" '
+                        'style="margin:14px 0 6px;padding:0 4px">'
+                        'Manage open positions</div>'
+                    ),
+                    mo.callout(
+                        mo.md(
+                            "No open positions yet. Add one in **Position "
+                            "Entry** above to enable management actions."
+                        ),
+                        kind="info",
+                    ),
+                ]
+            )
+        )
+    else:
+        pos_options = {
+            f"{p.description} ({p.id})": p.id for p in open_positions
+        }
+        manage_selector = mo.ui.dropdown(
+            options=pos_options, label="Select position", full_width=True
+        )
+        new_mark = mo.ui.number(value=0.0, step=0.05, label="New mark")
+        new_delta = mo.ui.number(value=0.0, step=0.01, label="New delta")
+        new_gamma = mo.ui.number(value=0.0, step=0.01, label="New gamma")
+        new_theta = mo.ui.number(value=0.0, step=0.01, label="New theta")
+
+        update_mark_btn = mo.ui.run_button(label="Update Mark")
+        update_greeks_btn = mo.ui.run_button(label="Update Greeks")
+        close_btn = mo.ui.run_button(label="Close Position")
+        invalidate_btn = mo.ui.run_button(label="Invalidate Thesis")
+        adjust_btn = mo.ui.run_button(label="Record Adjustment")
+
+        mo.vstack(
+            [
+                mo.Html(
+                    '<div class="app-stat__label" '
+                    'style="margin:14px 0 6px;padding:0 4px">'
+                    'Manage open positions</div>'
+                ),
+                manage_selector,
+                mo.Html(
+                    '<div class="app-stat__label" '
+                    'style="margin:8px 0 4px;padding:0 4px">'
+                    'Marks &amp; greeks</div>'
+                ),
+                mo.hstack(
+                    [new_mark, new_delta, new_gamma, new_theta],
+                    gap=1,
+                    wrap=True,
+                ),
+                mo.Html(
+                    '<div class="app-stat__label" '
+                    'style="margin:8px 0 4px;padding:0 4px">Actions</div>'
+                ),
+                mo.hstack(
+                    [
+                        update_mark_btn,
+                        update_greeks_btn,
+                        close_btn,
+                        invalidate_btn,
+                        adjust_btn,
+                    ],
+                    gap=1,
+                    wrap=True,
+                ),
+            ]
+        )
+    return (
+        adjust_btn,
+        close_btn,
+        invalidate_btn,
+        manage_selector,
+        new_delta,
+        new_gamma,
+        new_mark,
+        new_theta,
+        update_greeks_btn,
+        update_mark_btn,
+    )
+
+
+@app.cell
+def _(
+    adjust_btn,
+    close_btn,
+    invalidate_btn,
+    manage_click_state,
+    manage_selector,
+    mo,
+    new_delta,
+    new_gamma,
+    new_mark,
+    new_theta,
+    positions_state,
+    run_button_click_count,
+    set_manage_click,
+    set_positions,
+    update_greeks_btn,
+    update_mark_btn,
+):
+    def _apply(fn):
+        pid = manage_selector.value
+        try:
+            updated = tuple(
+                fn(p) if p.id == pid else p for p in positions_state()
+            )
+            set_positions(updated)
+        except ValueError as exc:
+            mo.output.replace(mo.md(f"**❌ {exc}**"))
+
+    def _handle_click(key, button, fn):
+        if button is None or manage_selector is None or not manage_selector.value:
+            return
+        click_count = run_button_click_count(button)
+        handled = manage_click_state().get(key, 0)
+        if click_count <= handled:
+            return
+        set_manage_click({**manage_click_state(), key: click_count})
+        _apply(fn)
+
+    _handle_click(
+        "update_mark", update_mark_btn, lambda p: p.with_mark(new_mark.value)
+    )
+    _handle_click(
+        "update_greeks",
+        update_greeks_btn,
+        lambda p: p.with_greeks(new_delta.value, new_gamma.value, new_theta.value),
+    )
+    _handle_click("close", close_btn, lambda p: p.closed(new_mark.value))
+    _handle_click(
+        "invalidate", invalidate_btn, lambda p: p.with_thesis_invalidated()
+    )
+    _handle_click("adjust", adjust_btn, lambda p: p.with_adjustment())
     return
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Calculators — hedge + friction, presented as tabs
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
 def _(mo):
-    mo.callout(
-        mo.md("User-entered inputs only. Hedge sizing is temporary inventory-control math, not trade authorization."),
-        kind="info",
+    mo.Html(
+        '<div class="app-section">'
+        '<div class="app-section__title">Calculators</div>'
+        '<div class="app-section__rule"></div></div>'
     )
     return
 
@@ -405,17 +852,10 @@ def _(mo):
 @app.cell
 def _(mo):
     hedge_option_delta = mo.ui.number(
-        value=0.30,
-        step=0.01,
-        label="Option delta",
-        full_width=True,
+        value=0.30, step=0.01, label="Option delta", full_width=True
     )
     hedge_contracts = mo.ui.number(
-        start=1,
-        step=1,
-        value=1,
-        label="SPX option contracts",
-        full_width=True,
+        start=1, step=1, value=1, label="SPX option contracts", full_width=True
     )
     hedge_percent = mo.ui.slider(
         start=0,
@@ -427,21 +867,16 @@ def _(mo):
         label="Hedge percent",
         full_width=True,
     )
-
-    mo.vstack(
-        [
-            mo.md("### Futures Hedge Calculator"),
-            hedge_option_delta,
-            hedge_contracts,
-            hedge_percent,
-            mo.md("A futures hedge is temporary inventory control, not a second unmanaged trade."),
-        ]
-    )
     return hedge_contracts, hedge_option_delta, hedge_percent
 
 
 @app.cell
-def _(calculate_futures_hedge, hedge_contracts, hedge_option_delta, hedge_percent):
+def _(
+    calculate_futures_hedge,
+    hedge_contracts,
+    hedge_option_delta,
+    hedge_percent,
+):
     def integer_input_value(value, field_name):
         if value is None:
             raise ValueError(f"{field_name} is required.")
@@ -468,52 +903,89 @@ def _(calculate_futures_hedge, hedge_contracts, hedge_option_delta, hedge_percen
 
 
 @app.cell
-def _(hedge_error, hedge_result, mo):
+def _(
+    hedge_contracts,
+    hedge_error,
+    hedge_option_delta,
+    hedge_percent,
+    hedge_result,
+    mo,
+):
     if hedge_error:
-        hedge_display = mo.callout(mo.md(f"**Input error:** `{hedge_error}`"), kind="danger")
+        _output = mo.callout(
+            mo.md(f"**Input error:** `{hedge_error}`"), kind="danger"
+        )
     else:
-        h = hedge_result
-        hedge_display = mo.vstack([
-            mo.hstack([
-                mo.stat(value=f"${h.dollar_delta_per_point:+,.0f}", label="$/SPX pt (signed)", bordered=True),
-                mo.stat(value=f"${h.target_hedge_dollars_per_point:,.0f}", label="Hedge target $/pt", bordered=True),
-            ]),
-            mo.hstack([
-                mo.stat(value=str(h.mes_rounded), label="MES contracts", bordered=True),
-                mo.stat(value=str(h.es_rounded), label="ES contracts", bordered=True),
-            ]),
-        ])
-    mo.vstack([mo.md("#### Hedge Output"), hedge_display])
-    return
+        _h = hedge_result
+        _output = mo.vstack(
+            [
+                mo.hstack(
+                    [
+                        mo.stat(
+                            value=f"${_h.dollar_delta_per_point:+,.0f}",
+                            label="$/SPX pt (signed)",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"${_h.target_hedge_dollars_per_point:,.0f}",
+                            label="Hedge target $/pt",
+                            bordered=True,
+                        ),
+                    ]
+                ),
+                mo.hstack(
+                    [
+                        mo.stat(
+                            value=str(_h.mes_rounded),
+                            label="MES contracts",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=str(_h.es_rounded),
+                            label="ES contracts",
+                            bordered=True,
+                        ),
+                    ]
+                ),
+            ]
+        )
+
+    hedge_panel = mo.vstack(
+        [
+            mo.callout(
+                mo.md(
+                    "Temporary inventory-control math. Not trade authorization. "
+                    "User-entered inputs only."
+                ),
+                kind="info",
+            ),
+            mo.hstack(
+                [hedge_option_delta, hedge_contracts], gap=1, wrap=True
+            ),
+            hedge_percent,
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:8px 0 4px;padding:0 4px">Output</div>'
+            ),
+            _output,
+        ]
+    )
+    return (hedge_panel,)
 
 
 @app.cell
 def _(mo):
     cost_contracts = mo.ui.number(
-        start=1,
-        step=1,
-        value=1,
-        label="Contracts",
-        full_width=True,
+        start=1, step=1, value=1, label="Contracts", full_width=True
     )
     cost_legs = mo.ui.number(
-        start=1,
-        step=1,
-        value=4,
-        label="Legs",
-        full_width=True,
+        start=1, step=1, value=4, label="Legs", full_width=True
     )
     commission_per_contract = mo.ui.number(
-        value=0.0,
-        step=0.01,
-        label="Commission per contract",
-        full_width=True,
+        value=0.0, step=0.01, label="Commission per contract", full_width=True
     )
     fees_per_contract = mo.ui.number(
-        value=0.0,
-        step=0.01,
-        label="Fees per contract",
-        full_width=True,
+        value=0.0, step=0.01, label="Fees per contract", full_width=True
     )
     entry_spread_crossing = mo.ui.number(
         value=0.0,
@@ -528,23 +1000,7 @@ def _(mo):
         full_width=True,
     )
     gross_target_dollars = mo.ui.number(
-        value=100.0,
-        step=1.0,
-        label="Gross target dollars",
-        full_width=True,
-    )
-
-    mo.vstack(
-        [
-            mo.md("### Cost / Friction Calculator"),
-            cost_contracts,
-            cost_legs,
-            commission_per_contract,
-            fees_per_contract,
-            entry_spread_crossing,
-            exit_spread_crossing,
-            gross_target_dollars,
-        ]
+        value=100.0, step=1.0, label="Gross target dollars", full_width=True
     )
     return (
         commission_per_contract,
@@ -588,57 +1044,257 @@ def _(
 
 
 @app.cell
-def _(cost_error, cost_result, mo):
+def _(
+    commission_per_contract,
+    cost_contracts,
+    cost_error,
+    cost_legs,
+    cost_result,
+    entry_spread_crossing,
+    exit_spread_crossing,
+    fees_per_contract,
+    gross_target_dollars,
+    mo,
+):
     if cost_error:
-        cost_display = mo.callout(mo.md(f"**Input error:** `{cost_error}`"), kind="danger")
-        friction_warning_display = mo.md("")
+        _cost_display = mo.callout(
+            mo.md(f"**Input error:** `{cost_error}`"), kind="danger"
+        )
+        _friction_warning = mo.md("")
     else:
-        c = cost_result
-        cost_display = mo.vstack([
-            mo.hstack([
-                mo.stat(value=str(c.roundtrip_contract_count), label="RT contracts", bordered=True),
-                mo.stat(value=f"${c.commission_and_fees:,.2f}", label="Comm + fees", bordered=True),
-                mo.stat(value=f"${c.spread_crossing_cost:,.2f}", label="Spread crossing", bordered=True),
-            ]),
-            mo.hstack([
-                mo.stat(value=f"${c.total_friction:,.2f}", label="Total friction", bordered=True),
-                mo.stat(value=f"${c.target_after_friction:,.2f}", label="After friction", bordered=True),
-                mo.stat(value=f"{c.friction_percent_of_target:.1%}", label="Friction %", bordered=True),
-            ]),
-        ])
-        friction_warning_display = (
+        _c = cost_result
+        _cost_display = mo.vstack(
+            [
+                mo.hstack(
+                    [
+                        mo.stat(
+                            value=str(_c.roundtrip_contract_count),
+                            label="RT contracts",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"${_c.commission_and_fees:,.2f}",
+                            label="Comm + fees",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"${_c.spread_crossing_cost:,.2f}",
+                            label="Spread crossing",
+                            bordered=True,
+                        ),
+                    ]
+                ),
+                mo.hstack(
+                    [
+                        mo.stat(
+                            value=f"${_c.total_friction:,.2f}",
+                            label="Total friction",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"${_c.target_after_friction:,.2f}",
+                            label="After friction",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"{_c.friction_percent_of_target:.1%}",
+                            label="Friction %",
+                            bordered=True,
+                        ),
+                    ]
+                ),
+            ]
+        )
+        _friction_warning = (
             mo.callout(
                 mo.md(
-                    "Friction is \u2265 25% of gross target. Requires explicit justification."
+                    "Friction is ≥ 25% of gross target. Requires "
+                    "explicit justification."
                 ),
                 kind="danger",
             )
-            if c.friction_warning
+            if _c.friction_warning
             else mo.md("")
         )
-    mo.vstack([mo.md("#### Cost / Friction Output"), cost_display, friction_warning_display])
-    return
+
+    friction_panel = mo.vstack(
+        [
+            mo.callout(
+                mo.md(
+                    "Friction sanity check. User-entered inputs only. "
+                    "Not trade authorization."
+                ),
+                kind="info",
+            ),
+            mo.hstack([cost_contracts, cost_legs], gap=1, wrap=True),
+            mo.hstack(
+                [commission_per_contract, fees_per_contract], gap=1, wrap=True
+            ),
+            mo.hstack(
+                [entry_spread_crossing, exit_spread_crossing], gap=1, wrap=True
+            ),
+            gross_target_dollars,
+            mo.Html(
+                '<div class="app-stat__label" '
+                'style="margin:8px 0 4px;padding:0 4px">Output</div>'
+            ),
+            _cost_display,
+            _friction_warning,
+        ]
+    )
+    return (friction_panel,)
 
 
 @app.cell
-def _(mo):
-    mo.md("---")
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md("## \U0001f4d6 Playbook")
-    return
-
-
-@app.cell
-def _(mo):
-    mo.callout(
-        mo.md("Static operating reference. Closing remains superior when adjustment is not clearly justified."),
-        kind="info",
+def _(friction_panel, hedge_panel, mo):
+    mo.ui.tabs(
+        {
+            "Futures hedge": hedge_panel,
+            "Cost / friction": friction_panel,
+        }
     )
     return
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Operating Library — reference cards, playbook, prompts (collapsed by default)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@app.cell
+def _(mo):
+    mo.Html(
+        '<div class="app-section">'
+        '<div class="app-section__title">Operating Library</div>'
+        '<div class="app-section__rule"></div></div>'
+    )
+    return
+
+
+@app.cell
+def _(get_reference_cards):
+    reference_cards = get_reference_cards()
+    reference_card_by_topic = {rc.topic: rc for rc in reference_cards}
+    return reference_card_by_topic, reference_cards
+
+
+@app.cell
+def _(mo, reference_card_by_topic):
+    reference_card_selector = mo.ui.dropdown(
+        options=list(reference_card_by_topic),
+        value="Dealer gamma / GEX",
+        label="Reference topic",
+    )
+    return (reference_card_selector,)
+
+
+@app.cell
+def _(reference_card_by_topic, reference_card_selector):
+    selected_reference_card = reference_card_by_topic[reference_card_selector.value]
+    return (selected_reference_card,)
+
+
+@app.cell
+def _(mo, reference_card_selector, reference_cards, selected_reference_card):
+    card = selected_reference_card
+
+    mental_model_html = ""
+    if card.mental_model:
+        mental_model_html = (
+            '<div class="app-mental">'
+            '<div class="app-stat__label" style="color:#818cf8">Mental model</div>'
+            f'<div style="margin-top:6px;color:#cbd5e1;line-height:1.6">'
+            f'{card.mental_model}</div>'
+            '</div>'
+        )
+
+    quick_ref_html = (
+        '<div class="app-grid-2">'
+        '<div class="app-stat"><div class="app-stat__label">What it means</div>'
+        f'<div class="app-stat__value" style="font-size:0.9em">'
+        f'{card.what_it_means}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'Why it matters 0DTE</div>'
+        f'<div class="app-stat__value" style="font-size:0.9em">'
+        f'{card.why_it_matters_0dte}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label" '
+        'style="color:#22c55e">Operating implication</div>'
+        f'<div class="app-stat__value" style="font-size:0.9em">'
+        f'{card.operating_implication}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label" '
+        'style="color:#ef4444">Common error</div>'
+        f'<div class="app-stat__value" style="font-size:0.9em">'
+        f'{card.common_error}</div></div>'
+        '</div>'
+    )
+
+    mechanics_html = ""
+    if card.key_mechanics:
+        items = "".join(
+            '<div style="display:flex;gap:8px;margin-bottom:6px">'
+            '<span style="color:#22c55e">▸</span>'
+            f'<span style="color:#cbd5e1;line-height:1.5">{m}</span></div>'
+            for m in card.key_mechanics
+        )
+        mechanics_html = (
+            '<div class="app-card">'
+            '<div class="app-stat__label" style="color:#22c55e">'
+            'Key mechanics</div>'
+            f'<div style="margin-top:8px">{items}</div></div>'
+        )
+
+    deep_dive_html = ""
+    if card.deep_dive:
+        paragraphs = card.deep_dive.split("\n\n")
+        para_html = "".join(
+            f'<p style="margin:0 0 10px;line-height:1.7;color:#cbd5e1">{p}</p>'
+            for p in paragraphs
+        )
+        deep_dive_html = (
+            '<div class="app-card">'
+            '<div class="app-stat__label" style="color:#60a5fa">Deep dive</div>'
+            f'<div style="margin-top:8px">{para_html}</div></div>'
+        )
+
+    verify_html = (
+        '<div class="app-muted" style="margin-top:10px;padding:0 4px">'
+        f'<strong>Verify:</strong> {", ".join(card.verification_inputs)}</div>'
+    )
+
+    _all_rows = [
+        {
+            "topic": rc.topic,
+            "operating implication": rc.operating_implication,
+            "common error": rc.common_error,
+        }
+        for rc in reference_cards
+    ]
+
+    reference_panel = mo.vstack(
+        [
+            reference_card_selector,
+            mo.Html(
+                mental_model_html
+                + quick_ref_html
+                + mechanics_html
+                + deep_dive_html
+                + verify_html
+            ),
+            mo.accordion(
+                {
+                    "All 12 reference cards (overview)": mo.ui.table(
+                        _all_rows,
+                        pagination=False,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                }
+            ),
+        ]
+    )
+    return (reference_panel,)
 
 
 @app.cell
@@ -649,7 +1305,9 @@ def _(Permission, asdict):
             display_row = {}
             for key, value in asdict(row).items():
                 display_row[key] = (
-                    value.value.replace("_", " ") if isinstance(value, Permission) else value
+                    value.value.replace("_", " ")
+                    if isinstance(value, Permission)
+                    else value
                 )
             display_rows.append(display_row)
         return display_rows
@@ -658,72 +1316,73 @@ def _(Permission, asdict):
 
 
 @app.cell
-def _(get_action_permission_matrix, get_structure_quick_reference, get_conversion_triage_table, get_time_of_day_permission_matrix, mo, playbook_display_rows):
-    mo.accordion(
-        {
-            "\u2705 Action Permission Matrix (20 actions)": mo.ui.table(
-                playbook_display_rows(get_action_permission_matrix()),
-                pagination=False,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
+def _(
+    get_action_permission_matrix,
+    get_conversion_triage_table,
+    get_structure_quick_reference,
+    get_time_of_day_permission_matrix,
+    mo,
+    playbook_display_rows,
+):
+    playbook_panel = mo.vstack(
+        [
+            mo.callout(
+                mo.md(
+                    "Static operating reference. Closing remains superior "
+                    "when adjustment is not clearly justified."
+                ),
+                kind="info",
             ),
-            "\U0001f4cc Structure Quick Reference (8 structures)": mo.ui.table(
-                playbook_display_rows(get_structure_quick_reference()),
-                pagination=False,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
+            mo.accordion(
+                {
+                    "Action permission matrix (20 actions)": mo.ui.table(
+                        playbook_display_rows(get_action_permission_matrix()),
+                        pagination=False,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                    "Structure quick reference (8 structures)": mo.ui.table(
+                        playbook_display_rows(get_structure_quick_reference()),
+                        pagination=False,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                    "Conversion triage (10 scenarios)": mo.ui.table(
+                        playbook_display_rows(get_conversion_triage_table()),
+                        pagination=False,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                    "Time-of-day permissions "
+                    "(15 actions × 9 windows)": mo.ui.table(
+                        playbook_display_rows(
+                            get_time_of_day_permission_matrix()
+                        ),
+                        pagination=False,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                }
             ),
-            "\U0001f504 Conversion Triage (10 scenarios)": mo.ui.table(
-                playbook_display_rows(get_conversion_triage_table()),
-                pagination=False,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
-            ),
-            "\u23f0 Time-of-Day Permissions (15 actions \u00d7 9 windows)": mo.ui.table(
-                playbook_display_rows(get_time_of_day_permission_matrix()),
-                pagination=False,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
-            ),
-        }
+        ]
     )
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md("---")
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md("## \U0001f4ac Prompt Templates")
-    return
-
-
-@app.cell
-def _(mo):
-    mo.callout(
-        mo.md("Copy-ready templates. User supplies all data. Missing fields must be marked unknown."),
-        kind="info",
-    )
-    return
+    return (playbook_panel,)
 
 
 @app.cell
 def _(get_session_prompt_templates):
     session_prompt_templates = get_session_prompt_templates()
     session_prompt_template_by_name = {
-        prompt_template.name: prompt_template for prompt_template in session_prompt_templates
+        prompt_template.name: prompt_template
+        for prompt_template in session_prompt_templates
     }
     return session_prompt_template_by_name, session_prompt_templates
 
@@ -735,19 +1394,19 @@ def _(mo, session_prompt_template_by_name):
         value="Pre-session regime synthesis",
         label="Prompt template",
     )
-
-    mo.vstack([mo.md("### Template Selector"), prompt_template_selector])
     return (prompt_template_selector,)
 
 
 @app.cell
 def _(prompt_template_selector, session_prompt_template_by_name):
-    selected_prompt_template = session_prompt_template_by_name[prompt_template_selector.value]
+    selected_prompt_template = session_prompt_template_by_name[
+        prompt_template_selector.value
+    ]
     return (selected_prompt_template,)
 
 
 @app.cell
-def _(mo, selected_prompt_template):
+def _(mo, prompt_template_selector, selected_prompt_template):
     prompt_metadata = [
         {"field": "name", "value": selected_prompt_template.name},
         {"field": "purpose", "value": selected_prompt_template.purpose},
@@ -757,305 +1416,79 @@ def _(mo, selected_prompt_template):
         for required_input in selected_prompt_template.required_inputs
     ]
 
-    mo.vstack(
+    prompts_panel = mo.vstack(
         [
-            mo.md("### Template Metadata"),
-            mo.ui.table(
-                prompt_metadata,
-                pagination=False,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
+            mo.callout(
+                mo.md(
+                    "Copy-ready templates. User supplies all data. Missing "
+                    "fields must be marked unknown."
+                ),
+                kind="info",
             ),
-            mo.md("#### Required Inputs"),
-            mo.ui.table(
-                required_inputs,
-                pagination=True,
-                page_size=10,
-                selection=None,
-                show_column_summaries=False,
-                show_data_types=False,
-                show_download=False,
+            prompt_template_selector,
+            mo.accordion(
+                {
+                    "Template metadata": mo.ui.table(
+                        prompt_metadata,
+                        pagination=False,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                    "Required inputs": mo.ui.table(
+                        required_inputs,
+                        pagination=True,
+                        page_size=10,
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_download=False,
+                    ),
+                }
             ),
-        ]
-    )
-    return
-
-
-@app.cell
-def _(mo, selected_prompt_template):
-    mo.vstack(
-        [
-            mo.md("### Copy-Ready Template"),
+            mo.md("**Copy-ready template:**"),
             mo.md("```text\n" + selected_prompt_template.template + "\n```"),
         ]
     )
-    return
-
-
-# ── Position Tracking State ──
+    return (prompts_panel,)
 
 
 @app.cell
-def _(mo, TimeWindow, TIME_WINDOW_LABELS):
-    positions_state, set_positions = mo.state(())
-    add_click_state, set_add_click = mo.state(0)
-    manage_click_state, set_manage_click = mo.state({})
-    daily_budget_input = mo.ui.number(
-        value=2000.0, step=100.0, start=0.0,
-        label="Daily loss budget ($)", full_width=True,
-    )
-    current_time_window_selector = mo.ui.dropdown(
-        options={TIME_WINDOW_LABELS[tw]: tw for tw in TimeWindow},
-        value="Morning 9:45\u201310:30",
-        label="Current time window",
-    )
-    return (
-        current_time_window_selector,
-        daily_budget_input,
-        add_click_state,
-        set_add_click,
-        manage_click_state,
-        set_manage_click,
-        positions_state,
-        set_positions,
-    )
-
-
-@app.cell
-def _():
-    def run_button_click_count(button):
-        frontend_count = getattr(button, "_value_frontend", None)
-        if frontend_count is not None:
-            return int(frontend_count or 0)
-        return 1 if button.value else 0
-
-    return (run_button_click_count,)
-
-
-# ── Position Entry Form ──
-
-
-@app.cell
-def _(
-    mo,
-    PositionSide,
-    PositionStructure,
-    TimeWindow,
-    TIME_WINDOW_LABELS,
-):
-    structure_options = {s.value.replace("_", " ").title(): s for s in PositionStructure}
-    side_options = {s.value.title(): s for s in PositionSide}
-    close_by_options = {TIME_WINDOW_LABELS[tw]: tw for tw in TimeWindow}
-
-    pos_form = mo.ui.dictionary(
+def _(mo, playbook_panel, prompts_panel, reference_panel):
+    # Whole library is collapsed by default — visually subordinate to the
+    # decision console and position tracker, but one click away.
+    mo.accordion(
         {
-            "structure": mo.ui.dropdown(options=structure_options, label="Structure"),
-            "side": mo.ui.dropdown(options=side_options, value="Credit", label="Side"),
-            "description": mo.ui.text(label="Description", full_width=True),
-            "contracts": mo.ui.number(start=1, value=1, step=1, label="Contracts"),
-            "entry_price": mo.ui.number(value=0.0, step=0.05, label="Entry price (per contract)"),
-            "max_loss": mo.ui.number(value=0.0, step=0.50, label="Max loss (per contract)"),
-            "target": mo.ui.number(value=0.0, step=0.25, label="Target profit (per contract)"),
-            "thesis": mo.ui.text(label="Thesis", full_width=True),
-            "close_by": mo.ui.dropdown(options=close_by_options, value="Final Hour 15:15\u201315:45", label="Close by"),
-            "delta": mo.ui.number(value=0.0, step=0.01, label="Delta"),
-            "gamma": mo.ui.number(value=0.0, step=0.01, label="Gamma"),
-            "theta": mo.ui.number(value=0.0, step=0.01, label="Theta"),
-            "friction": mo.ui.number(value=0.0, step=1.0, start=0.0, label="Friction paid ($)"),
+            "\U0001f4da Reference cards": reference_panel,
+            "\U0001f4d6 Playbook": playbook_panel,
+            "\U0001f4ac Prompt templates": prompts_panel,
         }
     )
-
-    mo.vstack([
-        mo.md("## \U0001f4cb Position Entry"),
-        mo.md("User-supplied inputs only. No live data. No fabricated values."),
-        pos_form,
-    ])
-    return (pos_form,)
-
-
-@app.cell
-def _(
-    mo,
-):
-    add_button = mo.ui.run_button(label="Add Position")
-    mo.hstack([add_button])
-    return (add_button,)
-
-
-@app.cell
-def _(
-    add_button,
-    pos_form,
-    positions_state,
-    set_positions,
-    create_position,
-    current_time_window_selector,
-    add_click_state,
-    set_add_click,
-    run_button_click_count,
-    html_escape,
-    mo,
-):
-    add_msg = ""
-    click_count = run_button_click_count(add_button)
-    if click_count > add_click_state():
-        set_add_click(click_count)
-        v = pos_form.value
-        try:
-            desc = v["description"] or ""
-            thesis = v["thesis"] or ""
-            if not desc.strip() or not thesis.strip():
-                raise ValueError("Description and thesis are required.")
-            contracts_val = v["contracts"]
-            if isinstance(contracts_val, float) and contracts_val.is_integer():
-                contracts_val = int(contracts_val)
-            new_pos = create_position(
-                structure=v["structure"],
-                side=v["side"],
-                description=desc,
-                contracts=contracts_val,
-                entry_price=v["entry_price"],
-                max_loss_per_contract=v["max_loss"],
-                target_per_contract=v["target"],
-                thesis=thesis,
-                close_by_time=v["close_by"],
-                entry_time_window=current_time_window_selector.value,
-                delta=v["delta"],
-                gamma=v["gamma"],
-                theta=v["theta"],
-                friction_paid=v["friction"],
-            )
-            set_positions(positions_state() + (new_pos,))
-            add_msg = f"\u2705 Added: {html_escape(desc)}"
-        except (ValueError, KeyError, TypeError) as exc:
-            add_msg = f"\u274c Error: {exc}"
-    if add_msg:
-        mo.output.replace(mo.md(f"**{add_msg}**"))
     return
 
 
-# ── Position Management (update marks, close, invalidate) ──
-
-
-@app.cell
-def _(mo, positions_state, PositionStatus):
-    open_positions = [p for p in positions_state() if p.status is PositionStatus.OPEN]
-    manage_selector = None
-    new_mark = None
-    new_delta = None
-    new_gamma = None
-    new_theta = None
-    update_mark_btn = None
-    update_greeks_btn = None
-    close_btn = None
-    invalidate_btn = None
-    adjust_btn = None
-
-    if not open_positions:
-        mo.output.replace(mo.md("*No open positions.*"))
-    else:
-        pos_options = {f"{p.description} ({p.id})": p.id for p in open_positions}
-        manage_selector = mo.ui.dropdown(options=pos_options, label="Select position")
-        new_mark = mo.ui.number(value=0.0, step=0.05, label="New mark")
-        new_delta = mo.ui.number(value=0.0, step=0.01, label="New delta")
-        new_gamma = mo.ui.number(value=0.0, step=0.01, label="New gamma")
-        new_theta = mo.ui.number(value=0.0, step=0.01, label="New theta")
-
-        update_mark_btn = mo.ui.run_button(label="Update Mark")
-        update_greeks_btn = mo.ui.run_button(label="Update Greeks")
-        close_btn = mo.ui.run_button(label="Close Position")
-        invalidate_btn = mo.ui.run_button(label="Invalidate Thesis")
-        adjust_btn = mo.ui.run_button(label="Record Adjustment")
-
-        mo.vstack([
-            mo.md("## \U0001f527 Manage Positions"),
-            manage_selector,
-            mo.hstack([new_mark, new_delta, new_gamma, new_theta]),
-            mo.hstack([update_mark_btn, update_greeks_btn, close_btn, invalidate_btn, adjust_btn]),
-        ])
-    return (
-        adjust_btn,
-        close_btn,
-        invalidate_btn,
-        manage_selector,
-        new_delta,
-        new_gamma,
-        new_mark,
-        new_theta,
-        update_greeks_btn,
-        update_mark_btn,
-    )
+# ──────────────────────────────────────────────────────────────────────────────
+# Persistent sidebar — risk console, kept in place
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
 def _(
-    adjust_btn,
-    close_btn,
-    invalidate_btn,
-    manage_click_state,
-    manage_selector,
-    mo,
-    new_delta,
-    new_gamma,
-    new_mark,
-    new_theta,
-    positions_state,
-    run_button_click_count,
-    set_manage_click,
-    set_positions,
-    update_greeks_btn,
-    update_mark_btn,
-):
-    def _apply(fn):
-        pid = manage_selector.value
-        try:
-            updated = tuple(fn(p) if p.id == pid else p for p in positions_state())
-            set_positions(updated)
-        except ValueError as exc:
-            mo.output.replace(mo.md(f"**❌ {exc}**"))
-
-    def _handle_click(key, button, fn):
-        if button is None or manage_selector is None or not manage_selector.value:
-            return
-        click_count = run_button_click_count(button)
-        handled = manage_click_state().get(key, 0)
-        if click_count <= handled:
-            return
-        set_manage_click({**manage_click_state(), key: click_count})
-        _apply(fn)
-
-    _handle_click("update_mark", update_mark_btn, lambda p: p.with_mark(new_mark.value))
-    _handle_click(
-        "update_greeks",
-        update_greeks_btn,
-        lambda p: p.with_greeks(new_delta.value, new_gamma.value, new_theta.value),
-    )
-    _handle_click("close", close_btn, lambda p: p.closed(new_mark.value))
-    _handle_click("invalidate", invalidate_btn, lambda p: p.with_thesis_invalidated())
-    _handle_click("adjust", adjust_btn, lambda p: p.with_adjustment())
-    return
-
-
-# ── Sidebar Dashboard ──
-
-
-@app.cell
-def _(
-    mo,
-    positions_state,
-    calculate_session_summary,
-    daily_budget_input,
-    current_time_window_selector,
-    html_escape,
-    time_urgency,
-    Urgency,
     PositionStatus,
     TIME_WINDOW_LABELS,
+    Urgency,
+    calculate_session_summary,
+    current_time_window_selector,
+    daily_budget_input,
+    mo,
+    positions_state,
+    time_urgency,
 ):
     all_positions = positions_state()
-    summary = calculate_session_summary(all_positions, daily_budget_input.value or 2000.0)
+    summary = calculate_session_summary(
+        all_positions, daily_budget_input.value or 2000.0
+    )
     current_tw = current_time_window_selector.value
 
     def _pnl_color(val):
@@ -1073,91 +1506,147 @@ def _(
             Urgency.CRITICAL: ("#7f1d1d", "#f87171"),
         }
         bg, fg = colors.get(u, ("#334155", "#94a3b8"))
-        return f'<span style="background:{bg};color:{fg};padding:1px 6px;border-radius:4px;font-size:0.75em;font-weight:600">{u.value.upper()}</span>'
+        return (
+            f'<span style="background:{bg};color:{fg};padding:1px 6px;'
+            f'border-radius:4px;font-size:0.75em;font-weight:600">'
+            f'{u.value.upper()}</span>'
+        )
 
     def _budget_bar(pct):
         pct_clamped = max(0, min(pct, 1.0))
         w = int(pct_clamped * 100)
-        color = "#22c55e" if pct_clamped < 0.5 else "#facc15" if pct_clamped < 0.8 else "#ef4444"
-        return f'<div style="background:#1e293b;border-radius:4px;height:12px;width:100%;overflow:hidden"><div style="background:{color};height:100%;width:{w}%"></div></div>'
+        color = (
+            "#22c55e"
+            if pct_clamped < 0.5
+            else "#facc15"
+            if pct_clamped < 0.8
+            else "#ef4444"
+        )
+        return (
+            f'<div style="background:#1e293b;border-radius:4px;height:10px;'
+            f'width:100%;overflow:hidden">'
+            f'<div style="background:{color};height:100%;width:{w}%"></div></div>'
+        )
 
-    # Build sidebar HTML
     tw_label = TIME_WINDOW_LABELS.get(current_tw, str(current_tw))
     pnl_c = _pnl_color(summary.net_pnl)
 
     sidebar_parts = [
-        '<div style="font-family:monospace;font-size:0.85em;color:#e2e8f0">',
-        '<div style="font-size:1.1em;font-weight:700;margin-bottom:8px">\U0001f4ca SESSION</div>',
-        f'<div style="color:#94a3b8;margin-bottom:4px">{tw_label}</div>',
-        f'<div style="margin-bottom:4px">Budget: ${daily_budget_input.value or 2000:.0f}</div>',
+        '<div style="font-size:0.85em;color:#e2e8f0">',
+        '<div style="font-size:0.72em;text-transform:uppercase;color:#94a3b8;'
+        'letter-spacing:0.08em;font-weight:700;margin-bottom:6px">Session</div>',
+        f'<div style="color:#cbd5e1;margin-bottom:4px">{tw_label}</div>',
+        f'<div style="margin-bottom:4px;color:#94a3b8;font-size:0.8em">'
+        f'Daily budget ${daily_budget_input.value or 2000:.0f}</div>',
         _budget_bar(summary.budget_used_pct),
-        f'<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">{summary.budget_used_pct:.0%} utilized</div>',
-        '<hr style="border-color:#334155;margin:8px 0">',
-        '<div style="font-weight:700;margin-bottom:6px">\U0001f4b0 P&L</div>',
-        f'<div style="font-size:1.3em;font-weight:700;color:{pnl_c}">',
+        f'<div style="color:#94a3b8;font-size:0.78em;margin-top:4px;'
+        f'margin-bottom:14px">{summary.budget_used_pct:.0%} utilized</div>',
+        '<div style="font-size:0.72em;text-transform:uppercase;color:#94a3b8;'
+        'letter-spacing:0.08em;font-weight:700;margin-bottom:6px">P&amp;L</div>',
+        f'<div style="font-size:1.3em;font-weight:700;color:{pnl_c};'
+        'font-variant-numeric:tabular-nums">'
         f'{"" if summary.net_pnl < 0 else "+"}${summary.net_pnl:,.0f}</div>',
-        '<div style="color:#94a3b8;font-size:0.8em">',
-        f'Open: ${summary.open_pnl:+,.0f} | Closed: ${summary.closed_pnl:+,.0f}</div>',
-        '<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">',
-        f'Friction: -${summary.total_friction:,.0f}</div>',
-        '<hr style="border-color:#334155;margin:8px 0">',
-        '<div style="font-weight:700;margin-bottom:6px">\U0001f9ee GREEKS</div>',
-        f'<div>\u0394 {summary.net_delta:+.2f} &nbsp; \u0393 {summary.net_gamma:+.3f} &nbsp; \u0398 {summary.net_theta:+.2f}</div>',
-        f'<div style="color:#94a3b8;font-size:0.8em;margin-bottom:12px">{summary.total_contracts_open} contracts open | {summary.total_adjustments} adj</div>',
+        '<div style="color:#94a3b8;font-size:0.78em">'
+        f'Open ${summary.open_pnl:+,.0f} &middot; '
+        f'Closed ${summary.closed_pnl:+,.0f}</div>',
+        '<div style="color:#94a3b8;font-size:0.78em;margin-bottom:14px">'
+        f'Friction −${summary.total_friction:,.0f}</div>',
+        '<div style="font-size:0.72em;text-transform:uppercase;color:#94a3b8;'
+        'letter-spacing:0.08em;font-weight:700;margin-bottom:6px">Greeks</div>',
+        '<div style="font-variant-numeric:tabular-nums">'
+        f'Δ {summary.net_delta:+.2f} &nbsp; '
+        f'Γ {summary.net_gamma:+.3f} &nbsp; '
+        f'Θ {summary.net_theta:+.2f}</div>',
+        '<div style="color:#94a3b8;font-size:0.78em;margin-bottom:14px">'
+        f'{summary.total_contracts_open} contracts open '
+        f'&middot; {summary.total_adjustments} adjustments</div>',
     ]
 
-    # Position cards
     open_pos = [p for p in all_positions if p.status is PositionStatus.OPEN]
     if open_pos:
-        sidebar_parts.append('<hr style="border-color:#334155;margin:8px 0">')
-        sidebar_parts.append(f'<div style="font-weight:700;margin-bottom:6px">\U0001f4c2 OPEN ({len(open_pos)})</div>')
+        sidebar_parts.append(
+            '<div style="font-size:0.72em;text-transform:uppercase;'
+            'color:#94a3b8;letter-spacing:0.08em;font-weight:700;'
+            f'margin-bottom:6px">Open ({len(open_pos)})</div>'
+        )
         for p in open_pos:
             urg = time_urgency(current_tw, p.close_by_time)
             pc = _pnl_color(p.total_pnl)
-            pct_target = f"{p.pnl_pct_of_target:.0%}" if p.target_total else "--"
+            pct_target = (
+                f"{p.pnl_pct_of_target:.0%}" if p.target_total else "--"
+            )
             description = p.description
             sidebar_parts.append(
-                f'<div style="background:#1e293b;border-radius:6px;padding:8px;margin-bottom:6px">'
+                '<div style="background:#1e293b;border:1px solid #334155;'
+                'border-radius:6px;padding:8px;margin-bottom:6px">'
                 f'<div style="font-weight:600;margin-bottom:2px">{description}</div>'
-                f'<div style="font-size:1.1em;color:{pc};font-weight:700">{"" if p.total_pnl < 0 else "+"}${p.total_pnl:,.0f}</div>'
-                f'<div style="color:#94a3b8;font-size:0.8em">'
-                f'{p.contracts}c | \u0394{p.net_delta:+.2f} | target {pct_target} | {_urgency_badge(urg)}'
-                f'</div>'
+                f'<div style="font-size:1.05em;color:{pc};font-weight:700;'
+                'font-variant-numeric:tabular-nums">'
+                f'{"" if p.total_pnl < 0 else "+"}${p.total_pnl:,.0f}</div>'
+                '<div style="color:#94a3b8;font-size:0.78em">'
+                f'{p.contracts}c &middot; Δ{p.net_delta:+.2f} '
+                f'&middot; target {pct_target} &middot; {_urgency_badge(urg)}'
+                '</div>'
             )
             if not p.thesis_still_valid:
-                sidebar_parts.append('<div style="color:#f87171;font-size:0.8em;font-weight:600">\u26a0 THESIS INVALIDATED</div>')
+                sidebar_parts.append(
+                    '<div style="color:#f87171;font-size:0.78em;'
+                    'font-weight:600;margin-top:4px">'
+                    '⚠ Thesis invalidated</div>'
+                )
             sidebar_parts.append('</div>')
 
-    # Closed positions summary
     closed_pos = [p for p in all_positions if p.status is PositionStatus.CLOSED]
     if closed_pos:
-        sidebar_parts.append('<hr style="border-color:#334155;margin:8px 0">')
         closed_pnl = sum(p.total_pnl for p in closed_pos)
         cp_color = _pnl_color(closed_pnl)
         sidebar_parts.append(
-            f'<div style="font-weight:700;margin-bottom:4px">\u2705 CLOSED ({len(closed_pos)})</div>'
-            f'<div style="color:{cp_color}">{"" if closed_pnl < 0 else "+"}${closed_pnl:,.0f}</div>'
+            '<div style="font-size:0.72em;text-transform:uppercase;'
+            'color:#94a3b8;letter-spacing:0.08em;font-weight:700;'
+            f'margin:14px 0 6px">Closed ({len(closed_pos)})</div>'
+            f'<div style="color:{cp_color};font-variant-numeric:tabular-nums">'
+            f'{"" if closed_pnl < 0 else "+"}${closed_pnl:,.0f}</div>'
         )
 
-    # Behavioral health
-    sidebar_parts.append('<hr style="border-color:#334155;margin:8px 0">')
-    sidebar_parts.append('<div style="font-weight:700;margin-bottom:4px">\U0001f6e1 DISCIPLINE</div>')
-    sidebar_parts.append(f'<div style="color:#94a3b8;font-size:0.85em">Trades: {len(all_positions)} | Adj: {summary.total_adjustments}</div>')
+    sidebar_parts.append(
+        '<div style="font-size:0.72em;text-transform:uppercase;'
+        'color:#94a3b8;letter-spacing:0.08em;font-weight:700;'
+        'margin:14px 0 6px">Discipline</div>'
+        '<div style="color:#94a3b8;font-size:0.82em">'
+        f'Trades {len(all_positions)} &middot; '
+        f'Adjustments {summary.total_adjustments}</div>'
+    )
     if summary.budget_used_pct >= 0.8:
-        sidebar_parts.append('<div style="color:#f87171;font-weight:600;font-size:0.85em">\u26a0 Budget &ge; 80%</div>')
+        sidebar_parts.append(
+            '<div style="color:#f87171;font-weight:600;font-size:0.82em;'
+            'margin-top:4px">⚠ Budget ≥ 80%</div>'
+        )
     if summary.total_adjustments >= 5:
-        sidebar_parts.append('<div style="color:#facc15;font-size:0.85em">\u26a0 High adjustment count</div>')
-    any_invalid = any(not p.thesis_still_valid and p.status is PositionStatus.OPEN for p in all_positions)
+        sidebar_parts.append(
+            '<div style="color:#facc15;font-size:0.82em;margin-top:4px">'
+            '⚠ High adjustment count</div>'
+        )
+    any_invalid = any(
+        not p.thesis_still_valid and p.status is PositionStatus.OPEN
+        for p in all_positions
+    )
     if any_invalid:
-        sidebar_parts.append('<div style="color:#f87171;font-size:0.85em">\u26a0 Invalidated thesis still open</div>')
+        sidebar_parts.append(
+            '<div style="color:#f87171;font-size:0.82em;margin-top:4px">'
+            '⚠ Invalidated thesis still open</div>'
+        )
 
     sidebar_parts.append('</div>')
 
     mo.sidebar(
         [
-            mo.md("# \U0001f3af Dashboard"),
-            current_time_window_selector,
-            daily_budget_input,
+            mo.md("# \U0001f4ca Risk Console"),
+            mo.Html(
+                '<div class="app-muted" style="margin-bottom:10px">'
+                'Persistent session view. Inputs that drive these numbers '
+                '(window, budget) live in the top header strip.'
+                '</div>'
+            ),
             mo.Html("\n".join(sidebar_parts)),
         ]
     )
