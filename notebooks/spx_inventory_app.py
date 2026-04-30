@@ -112,6 +112,9 @@ def _():
         size_exceeds_plan_state,
         thesis_invalidated_state,
     )
+    from spx_inventory_playbook.market_data_facade import (
+        evaluate_market_data_facade,
+    )
     from spx_inventory_playbook.playbook import (
         Permission,
         get_action_permission_matrix,
@@ -164,6 +167,7 @@ def _():
         calculate_trade_friction,
         create_position,
         evaluate_inventory_rules,
+        evaluate_market_data_facade,
         fixture_factories,
         get_action_permission_matrix,
         get_conversion_triage_table,
@@ -277,6 +281,126 @@ def _(mo):
         'degrades confidence, or requires manual confirmation. Bounded '
         'decision support is allowed; automated order execution is not.'
         '</div>'
+    )
+    return
+
+
+@app.cell
+def _(evaluate_market_data_facade):
+    market_data_readiness = evaluate_market_data_facade(
+        underlying_quote=None,
+        option_chain=None,
+        atm_straddle=None,
+    )
+    return (market_data_readiness,)
+
+
+@app.cell
+def _(html_escape, market_data_readiness, mo):
+    _mdr = market_data_readiness
+    _health = _mdr.health
+    _status = _health.status
+    _status_meta = {
+        "OK": {
+            "modifier": "normal",
+            "badge": "#22c55e",
+            "title": "Healthy",
+            "subtitle": "Canonical market data is fresh and usable.",
+        },
+        "DEGRADED": {
+            "modifier": "caution",
+            "badge": "#facc15",
+            "title": "Degraded",
+            "subtitle": "Some market-data outputs require caution.",
+        },
+        "BLOCKED": {
+            "modifier": "blocked",
+            "badge": "#ef4444",
+            "title": "Blocked",
+            "subtitle": "Fail-closed until canonical market data is loaded.",
+        },
+    }
+    _meta = _status_meta.get(_status, _status_meta["BLOCKED"])
+
+    def _yn(value):
+        return "yes" if value else "no"
+
+    def _list_html(values, empty_label):
+        if not values:
+            return f'<span class="app-muted">{empty_label}</span>'
+        return (
+            '<ul class="app-list">'
+            + "".join(f"<li>{html_escape(str(value))}</li>" for value in values)
+            + "</ul>"
+        )
+
+    _severity_html = (
+        f'<div class="app-severity app-severity--{_meta["modifier"]}">'
+        f'<span class="app-severity__badge" style="background:{_meta["badge"]}">'
+        f'{html_escape(_status)}</span>'
+        '<div>'
+        f'<div class="app-severity__title">{_meta["title"]}</div>'
+        f'<div class="app-severity__subtitle">{_meta["subtitle"]}</div>'
+        '</div></div>'
+    )
+
+    _freshness_html = (
+        '<div class="app-grid-3">'
+        '<div class="app-stat"><div class="app-stat__label">Health status</div>'
+        f'<div class="app-stat__value">{html_escape(_status.lower())}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'Underlying freshness</div>'
+        f'<div class="app-stat__value">{_mdr.underlying_freshness.value}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Chain freshness</div>'
+        f'<div class="app-stat__value">{_mdr.option_chain_freshness.value}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'ATM straddle freshness</div>'
+        f'<div class="app-stat__value">{_mdr.atm_straddle_freshness.value}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'Underlying quote usable</div>'
+        f'<div class="app-stat__value">{_yn(_mdr.underlying_usable)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'Option chain usable</div>'
+        f'<div class="app-stat__value">{_yn(_mdr.option_chain_usable)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'ATM straddle usable</div>'
+        f'<div class="app-stat__value">{_yn(_mdr.atm_straddle_usable)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'API-derived outputs usable</div>'
+        f'<div class="app-stat__value">{_yn(_mdr.api_outputs_usable)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'Manual confirmation required</div>'
+        f'<div class="app-stat__value">{_yn(_mdr.manual_confirmation_required)}</div></div>'
+        '</div>'
+    )
+
+    _detail_html = (
+        '<div class="app-grid-2" style="margin-top:10px">'
+        '<div><div class="app-stat__label">Blockers</div>'
+        f'{_list_html(_health.blockers, "none")}</div>'
+        '<div><div class="app-stat__label">Warnings</div>'
+        f'{_list_html(_health.warnings, "none")}</div>'
+        '<div><div class="app-stat__label">Missing fields</div>'
+        f'{_list_html(_health.missing_fields, "none")}</div>'
+        '<div><div class="app-stat__label">Stale fields</div>'
+        f'{_list_html(_health.stale_fields, "none")}</div>'
+        '</div>'
+    )
+
+    mo.Html(
+        '<div class="app-section">'
+        '<div class="app-section__title">Market Data Readiness</div>'
+        '<div class="app-section__rule"></div></div>'
+        '<div class="app-card">'
+        '<div class="app-muted" style="margin-bottom:10px">'
+        'Default state: not live, no broker data loaded, and no raw provider '
+        'payloads in the notebook. API-derived outputs remain unavailable '
+        'until canonical market-data snapshots pass freshness checks.'
+        '</div>'
+        + _severity_html
+        + _freshness_html
+        + _detail_html
+        + '</div>'
     )
     return
 

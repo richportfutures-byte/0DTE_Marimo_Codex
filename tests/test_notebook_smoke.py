@@ -59,3 +59,11 @@ def test_app_exposes_cell_manager() -> None:
         "marimo App no longer exposes _cell_manager; "
         "test_notebook_import_exposes_marimo_app_with_cells will need updating"
     )
+
+
+def test_notebook_source_includes_market_data_readiness_section() -> None:
+    source = NOTEBOOK_PATH.read_text(encoding="utf-8")
+
+    assert "evaluate_market_data_facade" in source
+    assert "Market Data Readiness" in source
+    assert "Manual confirmation required" in source
