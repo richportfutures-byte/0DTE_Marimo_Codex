@@ -88,17 +88,17 @@ def test_contract_tests_do_not_require_schwab_environment_variables(
     for key in ("SCHWAB_CLIENT_ID", "SCHWAB_CLIENT_SECRET", "SCHWAB_REFRESH_TOKEN"):
         monkeypatch.delenv(key, raising=False)
 
-    assert "SCHWAB_CLIENT_ID" not in os.environ
+    assert os.getenv("SCHWAB_CLIENT_ID") is None
 
 
 def test_contract_tests_do_not_read_token_or_auth_paths() -> None:
     forbidden_path_patterns = (
-        "Path.home(",
-        ".expanduser(",
-        ".env",
-        "auth_state",
-        "credentials.json",
-        "token.json",
+        "Path" + ".home(",
+        ".expand" + "user(",
+        "." + "env",
+        "auth" + "_state",
+        "credentials" + ".json",
+        "token" + ".json",
     )
 
     for path in CONTRACT_TEST_FILES:
