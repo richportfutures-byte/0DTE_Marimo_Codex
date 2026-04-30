@@ -1,11 +1,11 @@
-"""Validation helpers for future user-supplied inventory state."""
+"""Validation helpers for explicit inventory state inputs."""
 
 from dataclasses import dataclass
 from enum import Enum
 
 
 class DealerRegime(Enum):
-    """User-supplied dealer-flow regime classification."""
+    """Explicit dealer-flow regime classification."""
 
     POSITIVE_GEX = "positive_gex"
     NEGATIVE_GEX = "negative_gex"
@@ -30,7 +30,7 @@ class TimeWindow(Enum):
 
 
 class PositionStructure(Enum):
-    """High-level user-supplied option inventory structure."""
+    """High-level explicit option inventory structure."""
 
     LONG_OPTION = "long_option"
     DEBIT_SPREAD = "debit_spread"
@@ -124,7 +124,7 @@ def require_user_supplied(value: object, field_name: str) -> object:
 
 
 def validate_inventory_state(state: InventoryState) -> ValidationResult:
-    """Validate user-supplied inventory state without recommending trades."""
+    """Validate inventory state for bounded decision support."""
     messages: list[ValidationMessage] = []
 
     if state.behavior.daily_lockout_active or state.behavior.weekly_lockout_active:

@@ -529,7 +529,7 @@ def get_reference_cards() -> list[ReferenceCard]:
             what_it_means="Product mechanics need Cboe, OCC, OIC, and broker verification.",
             why_it_matters_0dte="Broker rules control margin, routing, spread handling, and liquidation.",
             operating_implication="Verify source, broker rule, symbol, expiry, and position state.",
-            common_error="Assuming reference cards have live broker or market-data access.",
+            common_error="Assuming unsourced or stale market data is safe to use.",
             verification_inputs=(
                 "Cboe OCC OIC sources",
                 "broker rule page",
@@ -552,9 +552,12 @@ def get_reference_cards() -> list[ReferenceCard]:
                 "settlement terms? Does your broker support the specific spread type? What "
                 "are the margin implications? What happens if you hold through expiry — "
                 "does the broker auto-close, auto-exercise, or let it settle?\n\n"
-                "This workstation does not have live broker or market-data access. Every "
-                "product mechanic, rule, and specification mentioned here must be verified "
-                "against primary sources before trading."
+                "This workstation may accept broker or market-data inputs only when they "
+                "come from an approved adapter with source, timestamp, and freshness "
+                "checks. Every product mechanic, rule, and specification mentioned here "
+                "must still be verified against primary sources before trading. Missing, "
+                "stale, partial, or unverifiable data should reduce confidence, require "
+                "manual confirmation, or block the workflow."
             ),
             mental_model=(
                 "Think of it like checking three different maps before driving: the road map "
@@ -567,7 +570,9 @@ def get_reference_cards() -> list[ReferenceCard]:
                 "Broker margin requirements are often stricter than exchange minimums",
                 "Auto-liquidation and auto-exercise rules vary by broker — verify yours",
                 "A strike listed on the exchange may not be available for spreads at your broker",
-                "This workstation has no live data access — always verify against primary sources",
+                "Live data must be sourced, timestamped, and freshness-checked",
+                "Missing, stale, partial, or unverifiable data must degrade or block decisions",
+                "Decision support never means automated order execution",
             ),
         ),
     ]

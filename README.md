@@ -2,7 +2,7 @@
 
 A standalone Python/marimo app for professional 0DTE SPX/SPXW inventory reference and operating discipline.
 
-This repo is a compact reference and workflow shell. It is not a signal engine, not a live trading system, and not personalized financial advice.
+This repo is a compact reference and operator decision-support shell for 0DTE SPX/SPXW inventory work.
 
 ## Architecture Map
 
@@ -17,14 +17,15 @@ This repo is a compact reference and workflow shell. It is not a signal engine, 
 - `notebooks/spx_inventory_app.py`: marimo UI shell.
 - `tests/`: unit tests and guardrail checks.
 
-## Safety Boundaries
+## Live-Data-Safe Boundaries
 
-- No live market data.
-- No fabricated Greeks, bid/asks, fills, strikes, or P/L.
-- No automated trade recommendations.
-- Not personalized financial advice.
-- User-supplied inputs only for calculators and prompt workflow.
-- Reference cards are encoded from prompt-supplied doctrine, not assumed uploaded documents.
+- Live or near-live market data is permitted only from an approved adapter with source, timestamp, and freshness checks.
+- User-supplied inputs remain permitted, but they are not the only permitted input source.
+- Greeks, IV, bid/ask, strikes, expiries, marks, fills, and P/L must never be fabricated.
+- Missing, stale, partial, or unverifiable data must fail closed, degrade confidence, or require manual confirmation.
+- The app may provide bounded decision support: no-trade states, structure ranking, invalidation logic, risk warnings, and trade-plan checks.
+- The app must not place trades, route orders, or present itself as an automated execution system.
+- The app supports operator judgment; it does not replace trader responsibility.
 
 ## Commands
 
@@ -74,8 +75,9 @@ uv run marimo run notebooks/spx_inventory_app.py
 - Browser review of Position Entry add flow
 - Browser review of Manage Positions update, adjustment, thesis invalidation, and close flows
 - Browser review of Sidebar Dashboard / Position Summary updates after position changes
-- Confirm no fake market data appears
-- Confirm no recommendation language appears
+- Confirm no fabricated market data appears
+- Confirm bounded decision-support language remains risk-gated
+- Confirm no automated order execution language appears
 
 ## Future Work Backlog
 

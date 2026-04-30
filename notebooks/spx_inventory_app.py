@@ -270,10 +270,12 @@ def _(
 def _(mo):
     mo.Html(
         '<div class="app-ribbon">'
-        '<strong>Safety boundaries:</strong> '
-        'No live market data. No fabricated Greeks, bid/asks, fills, strikes, '
-        'or P/L. No automated trade recommendations. User-supplied inputs only. '
-        'Not personalized financial advice.'
+        '<strong>Live-data-safe boundaries:</strong> '
+        'Live data requires approved source, timestamp, and freshness checks. '
+        'Greeks, IV, bid/ask, strikes, expiries, marks, fills, and P&amp;L '
+        'must never be fabricated. Missing or stale data fails closed, '
+        'degrades confidence, or requires manual confirmation. Bounded '
+        'decision support is allowed; automated order execution is not.'
         '</div>'
     )
     return
@@ -1371,8 +1373,9 @@ def _(mo, prompt_template_selector, selected_prompt_template):
         [
             mo.callout(
                 mo.md(
-                    "Copy-ready templates. User supplies all data. Missing "
-                    "fields must be marked unknown."
+                    "Copy-ready templates. Inputs may be user-supplied or "
+                    "adapter-sourced. Missing, stale, partial, or unverifiable "
+                    "fields must be marked unknown or require confirmation."
                 ),
                 kind="info",
             ),

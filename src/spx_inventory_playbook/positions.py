@@ -1,6 +1,7 @@
 """Position tracking and session P&L for 0DTE SPX inventory.
 
-User-supplied inputs only. No live market data. No fabricated values.
+Inputs may be user-supplied or adapter-sourced. Marks, Greeks, fills,
+and P&L must never be fabricated.
 """
 
 from dataclasses import dataclass, replace
@@ -185,7 +186,7 @@ def create_position(
     theta: float = 0.0,
     friction_paid: float = 0.0,
 ) -> Position:
-    """Create a new tracked position from user-supplied inputs."""
+    """Create a new tracked position from explicit position inputs."""
     if contracts <= 0:
         raise ValueError("contracts must be positive.")
     if entry_price < 0:

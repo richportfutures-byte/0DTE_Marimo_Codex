@@ -81,7 +81,7 @@ def _decision(
 
 
 def allowed_actions_from_validation(result: ValidationResult) -> set[Action]:
-    """Map validation state to a broad allowed-action set without recommendations."""
+    """Map validation state to a broad allowed-action set for decision support."""
     codes = _codes(result)
 
     if "LOCKOUT_ACTIVE" in codes:
@@ -107,7 +107,7 @@ def allowed_actions_from_validation(result: ValidationResult) -> set[Action]:
 
 
 def evaluate_inventory_rules(state: InventoryState) -> RuleDecision:
-    """Evaluate deterministic inventory permissions without issuing trade recommendations."""
+    """Evaluate deterministic inventory permissions without implying order execution."""
     result = validate_inventory_state(state)
     codes = _codes(result)
 

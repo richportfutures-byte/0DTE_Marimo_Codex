@@ -13,5 +13,6 @@
 - Playbook tables render.
 - Prompt templates render.
 - Reference cards render.
-- No fake market data appears.
-- No trade recommendations appear.
+- No fabricated market data appears.
+- Bounded decision-support language remains risk-gated.
+- No automated order execution language appears.

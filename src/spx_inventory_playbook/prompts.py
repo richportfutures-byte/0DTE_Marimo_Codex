@@ -1,6 +1,16 @@
-"""Copy-ready session prompt templates for user-supplied 0DTE inputs."""
+"""Copy-ready session prompt templates for explicit 0DTE inputs."""
 
 from dataclasses import dataclass
+
+
+DATA_GUARDRAIL = (
+    "Use only explicitly sourced inputs: user-supplied data or approved adapter "
+    "data with source, timestamp, and freshness status. Mark missing, stale, "
+    "partial, or unverifiable fields unknown or require manual confirmation. "
+    "Do not invent fake data. Provide bounded decision support only; do not "
+    "place, route, or imply automated order execution. Do not generate batch "
+    "examples unless explicitly requested."
+)
 
 
 @dataclass(frozen=True)
@@ -32,7 +42,7 @@ def get_session_prompt_templates() -> list[PromptTemplate]:
         PromptTemplate(
             name="Pre-session regime synthesis",
             purpose=(
-                "Classify the current 0DTE SPX session regime from user-supplied "
+                "Classify the current 0DTE SPX session regime from explicit "
                 "dealer-flow, volatility, auction, and event inputs."
             ),
             required_inputs=(
@@ -53,9 +63,9 @@ def get_session_prompt_templates() -> list[PromptTemplate]:
                 "overnight catalyst",
                 "realized volatility context",
             ),
-            template="""You are a professional 0DTE SPX/SPXW inventory reviewer.
+            template=f"""You are a professional 0DTE SPX/SPXW inventory reviewer.
 
-Use only user-supplied data. Mark missing fields unknown. Do not invent fake data. Do not make live trade recommendations. Do not generate batch examples unless explicitly requested.
+{DATA_GUARDRAIL}
 
 Inputs:
 - aggregate GEX:
@@ -103,9 +113,9 @@ Output:
                 "auction context",
                 "time of day",
             ),
-            template="""You are interpreting dealer-flow context for 0DTE SPX/SPXW inventory.
+            template=f"""You are interpreting dealer-flow context for 0DTE SPX/SPXW inventory.
 
-Use only user-supplied data. Mark missing fields unknown. Do not invent fake data. Do not make live trade recommendations. Do not generate batch examples unless explicitly requested.
+{DATA_GUARDRAIL}
 
 Inputs:
 - aggregate GEX:
@@ -136,7 +146,7 @@ Output:
         PromptTemplate(
             name="One adjustment drill",
             purpose=(
-                "Generate one data-anchored adjustment drill from user-supplied context, "
+                "Generate one data-anchored adjustment drill from explicit context, "
                 "not a batch."
             ),
             required_inputs=(
@@ -154,9 +164,9 @@ Output:
                 "risk remaining",
                 "updated evidence",
             ),
-            template="""Create one 0DTE SPX/SPXW inventory adjustment drill.
+            template=f"""Create one 0DTE SPX/SPXW inventory adjustment drill.
 
-Use only user-supplied data. Mark missing fields unknown. If a required numeric field is missing, mark it unknown. Do not invent fake data. Do not make live trade recommendations. Do not generate batch examples unless explicitly requested. Generate one scenario only.
+{DATA_GUARDRAIL} Generate one scenario only.
 
 Inputs:
 - dealer-gamma regime:
@@ -207,9 +217,9 @@ Output:
                 "dealer-flow assumption",
                 "volatility assumption",
             ),
-            template="""Audit this proposed 0DTE SPX/SPXW strategy as a professional risk reviewer.
+            template=f"""Audit this proposed 0DTE SPX/SPXW strategy as a professional risk reviewer.
 
-Use only user-supplied data. Mark missing fields unknown. Do not invent fake data. Do not make live trade recommendations. Do not generate batch examples unless explicitly requested.
+{DATA_GUARDRAIL}
 
 Inputs:
 - strategy description:
@@ -255,9 +265,9 @@ Output:
                 "dealer-flow assumption",
                 "volatility assumption",
             ),
-            template="""Stress-test this claimed 0DTE SPX/SPXW edge. Default to insufficient evidence unless the edge survives cost, sample-size, regime, and execution tests.
+            template=f"""Stress-test this claimed 0DTE SPX/SPXW edge. Default to insufficient evidence unless the edge survives cost, sample-size, regime, and execution tests.
 
-Use only user-supplied data. Mark missing fields unknown. Do not invent fake data. Do not make live trade recommendations. Do not generate batch examples unless explicitly requested.
+{DATA_GUARDRAIL}
 
 Inputs:
 - hypothesis:
@@ -312,9 +322,9 @@ Output:
                 "final P/L",
                 "screenshots or notes",
             ),
-            template="""Review this completed 0DTE SPX/SPXW session as a hostile but fair professional risk reviewer.
+            template=f"""Review this completed 0DTE SPX/SPXW session as a hostile but fair professional risk reviewer.
 
-Use only user-supplied data. Mark missing fields unknown. Do not invent fake data. Do not make live trade recommendations. Do not generate batch examples unless explicitly requested.
+{DATA_GUARDRAIL}
 
 Inputs:
 - date:

@@ -51,7 +51,23 @@ def test_each_template_includes_missing_data_unknown_constraint() -> None:
     for template in get_session_prompt_templates():
         normalized = template.template.lower()
 
-        assert "missing fields unknown" in normalized
+        assert "missing, stale, partial, or unverifiable fields unknown" in normalized
+
+
+def test_each_template_allows_approved_adapter_data() -> None:
+    for template in get_session_prompt_templates():
+        normalized = template.template.lower()
+
+        assert "user-supplied data or approved adapter data" in normalized
+        assert "source, timestamp, and freshness status" in normalized
+
+
+def test_each_template_blocks_automated_order_execution() -> None:
+    for template in get_session_prompt_templates():
+        normalized = template.template.lower()
+
+        assert "bounded decision support only" in normalized
+        assert "do not place, route, or imply automated order execution" in normalized
 
 
 def test_adjustment_drill_template_is_one_scenario_only() -> None:

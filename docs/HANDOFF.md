@@ -34,14 +34,20 @@ uv run python notebooks/spx_inventory_app.py
 uv run marimo run notebooks/spx_inventory_app.py
 ```
 
+## Live-Data-Safe Boundaries
+
+- Live or near-live market data is permitted only from an approved adapter with source, timestamp, and freshness checks.
+- User-supplied inputs remain permitted, but they are not the only permitted input source.
+- Greeks, IV, bid/ask, strikes, expiries, marks, fills, and P/L must never be fabricated.
+- Missing, stale, partial, or unverifiable data must fail closed, degrade confidence, or require manual confirmation.
+- The app may provide bounded decision support: no-trade states, structure ranking, invalidation logic, risk warnings, and trade-plan checks.
+- The app must not place trades, route orders, or present itself as an automated execution system.
+- The app supports operator judgment; it does not replace trader responsibility.
+
 ## Known Non-Goals
 
-- No live market data.
-- No fabricated Greeks, bid/asks, fills, strikes, or P/L.
-- No automated trade recommendations.
-- No personalized financial advice.
 - No strategy encyclopedia or beginner course.
-- No live broker or market-data access claims.
+- No automated order execution or broker order routing.
 
 ## Known Maintenance Hazards
 
@@ -53,5 +59,5 @@ uv run marimo run notebooks/spx_inventory_app.py
 - Add official source-link registry for Cboe/OCC/OIC/broker references.
 - Refine marimo layout without changing doctrine.
 - Add static export or publishing workflow.
-- Add optional prompt-template input forms using user-supplied fields only.
+- Add optional prompt-template input forms with explicit source and freshness fields.
 - Add stronger app-level smoke tests.

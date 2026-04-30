@@ -41,7 +41,7 @@ class CostCalculation:
 
 
 def midpoint(bid: float, ask: float) -> float:
-    """Return the midpoint for explicit user-supplied bid and ask values."""
+    """Return the midpoint for explicit bid and ask values."""
     if bid < 0 or ask < 0:
         raise ValueError("Bid and ask must be non-negative.")
     if ask < bid:
@@ -70,7 +70,7 @@ def calculate_futures_hedge(
     contracts: int,
     hedge_percent: float = 1.0,
 ) -> HedgeCalculation:
-    """Calculate ES/MES hedge equivalents from user-supplied option delta."""
+    """Calculate ES/MES hedge equivalents from explicit option delta."""
     _require_number(option_delta, "option_delta")
     _require_positive_int(contracts, "contracts")
     _require_number(hedge_percent, "hedge_percent")
@@ -104,7 +104,7 @@ def calculate_trade_friction(
     exit_spread_crossing_per_contract: float,
     gross_target_dollars: float,
 ) -> CostCalculation:
-    """Calculate mechanical round-trip friction from user-supplied cost inputs."""
+    """Calculate mechanical round-trip friction from explicit cost inputs."""
     _require_positive_int(contracts, "contracts")
     _require_positive_int(legs, "legs")
     _require_non_negative_number(commission_per_contract, "commission_per_contract")
