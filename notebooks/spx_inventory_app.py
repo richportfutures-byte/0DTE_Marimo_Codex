@@ -1,12 +1,7 @@
 import marimo
 
-__generated_with = "0.21.1"
+__generated_with = "0.23.3"
 app = marimo.App(width="full")
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Bootstrap
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
@@ -155,14 +150,13 @@ def _():
         "Negative GEX credit spread": negative_gex_credit_spread_state,
         "Near flip unclear": near_flip_unclear_state,
     }
-
     return (
         Permission,
         PositionSide,
         PositionStatus,
         PositionStructure,
-        TimeWindow,
         TIME_WINDOW_LABELS,
+        TimeWindow,
         Urgency,
         asdict,
         calculate_futures_hedge,
@@ -183,13 +177,8 @@ def _():
     )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Session state — created early so the header can read window/budget values
-# ──────────────────────────────────────────────────────────────────────────────
-
-
 @app.cell
-def _(mo, TimeWindow, TIME_WINDOW_LABELS):
+def _(TIME_WINDOW_LABELS, TimeWindow, mo):
     positions_state, set_positions = mo.state(())
     add_click_state, set_add_click = mo.state(0)
     manage_click_state, set_manage_click = mo.state({})
@@ -206,41 +195,33 @@ def _(mo, TimeWindow, TIME_WINDOW_LABELS):
         label="Current time window",
     )
     return (
+        add_click_state,
         current_time_window_selector,
         daily_budget_input,
-        add_click_state,
-        set_add_click,
         manage_click_state,
-        set_manage_click,
         positions_state,
+        set_add_click,
+        set_manage_click,
         set_positions,
     )
 
 
-@app.cell
-def _():
-    def run_button_click_count(button):
-        frontend_count = getattr(button, "_value_frontend", None)
-        if frontend_count is not None:
-            return int(frontend_count or 0)
-        return 1 if button.value else 0
-
-    return (run_button_click_count,)
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Header strip + safety ribbon
-# ──────────────────────────────────────────────────────────────────────────────
+@app.function
+def run_button_click_count(button):
+    frontend_count = getattr(button, "_value_frontend", None)
+    if frontend_count is not None:
+        return int(frontend_count or 0)
+    return 1 if button.value else 0
 
 
 @app.cell
 def _(
-    mo,
     PositionStatus,
     TIME_WINDOW_LABELS,
     calculate_session_summary,
     current_time_window_selector,
     daily_budget_input,
+    mo,
     positions_state,
 ):
     _summary_for_header = calculate_session_summary(
@@ -296,11 +277,6 @@ def _(mo):
         '</div>'
     )
     return
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Decision Console — primary output, sits at the top of the working area
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
@@ -505,11 +481,6 @@ def _(mo, rule_decision, selected_state, validation_result):
     return
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Position Tracker — entry + manage
-# ──────────────────────────────────────────────────────────────────────────────
-
-
 @app.cell
 def _(mo):
     mo.Html(
@@ -521,13 +492,7 @@ def _(mo):
 
 
 @app.cell
-def _(
-    PositionSide,
-    PositionStructure,
-    TIME_WINDOW_LABELS,
-    TimeWindow,
-    mo,
-):
+def _(PositionSide, PositionStructure, TIME_WINDOW_LABELS, TimeWindow, mo):
     structure_options = {
         s.value.replace("_", " ").title(): s for s in PositionStructure
     }
@@ -637,7 +602,6 @@ def _(
     mo,
     pos_form,
     positions_state,
-    run_button_click_count,
     set_add_click,
     set_positions,
 ):
@@ -792,7 +756,6 @@ def _(
     new_mark,
     new_theta,
     positions_state,
-    run_button_click_count,
     set_manage_click,
     set_positions,
     update_greeks_btn,
@@ -832,11 +795,6 @@ def _(
     )
     _handle_click("adjust", adjust_btn, lambda p: p.with_adjustment())
     return
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Calculators — hedge + friction, presented as tabs
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
@@ -898,7 +856,6 @@ def _(
     except ValueError as exc:
         hedge_result = None
         hedge_error = str(exc)
-
     return hedge_error, hedge_result, integer_input_value
 
 
@@ -1039,7 +996,6 @@ def _(
     except ValueError as exc:
         cost_result = None
         cost_error = str(exc)
-
     return cost_error, cost_result
 
 
@@ -1154,11 +1110,6 @@ def _(friction_panel, hedge_panel, mo):
         }
     )
     return
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Operating Library — reference cards, playbook, prompts (collapsed by default)
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
@@ -1384,7 +1335,7 @@ def _(get_session_prompt_templates):
         prompt_template.name: prompt_template
         for prompt_template in session_prompt_templates
     }
-    return session_prompt_template_by_name, session_prompt_templates
+    return (session_prompt_template_by_name,)
 
 
 @app.cell
@@ -1466,11 +1417,6 @@ def _(mo, playbook_panel, prompts_panel, reference_panel):
         }
     )
     return
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Persistent sidebar — risk console, kept in place
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 @app.cell
