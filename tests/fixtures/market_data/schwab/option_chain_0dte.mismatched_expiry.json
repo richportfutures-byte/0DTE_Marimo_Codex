@@ -1,0 +1,29 @@
+{
+  "fixture": true,
+  "provider": "schwab",
+  "request_id": "fixture-request-id",
+  "retrieved_at": "2026-04-30T10:00:00-04:00",
+  "underlying_symbol": "SPX",
+  "product": "SPXW",
+  "expiry": {
+    "expiry_date": "2026-05-01",
+    "session_date": "2026-04-30",
+    "dte": "1",
+    "settlement": "PM"
+  },
+  "is_partial": false,
+  "completeness_notes": [],
+  "contracts": [
+    {
+      "provider_symbol": "SPXW_FIXTURE_20260501C05000000",
+      "underlying": "SPX",
+      "product": "SPXW",
+      "expiry_date": "2026-05-01",
+      "strike": "5000",
+      "right": "CALL",
+      "bid": "20.00",
+      "ask": "20.50",
+      "quote_time": "2026-04-30T10:00:00-04:00"
+    }
+  ]
+}

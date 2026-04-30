@@ -1,0 +1,17 @@
+{
+  "fixture": true,
+  "provider": "schwab",
+  "request_id": "fixture-request-id",
+  "retrieved_at": "2026-04-30T10:00:00-04:00",
+  "underlying": {
+    "provider_symbol": "SPX-FIXTURE",
+    "canonical_symbol": "SPX",
+    "bid": null,
+    "ask": null,
+    "last": "5000.50",
+    "mark": "5000.50",
+    "quote_time": "2026-04-30T10:00:00-04:00",
+    "is_proxy": false,
+    "proxy_for": null
+  }
+}

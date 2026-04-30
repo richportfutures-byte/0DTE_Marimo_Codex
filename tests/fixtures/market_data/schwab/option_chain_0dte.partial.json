@@ -1,0 +1,42 @@
+{
+  "fixture": true,
+  "provider": "schwab",
+  "request_id": "fixture-request-id",
+  "retrieved_at": "2026-04-30T10:00:00-04:00",
+  "underlying_symbol": "SPX",
+  "product": "SPXW",
+  "expiry": {
+    "expiry_date": "2026-04-30",
+    "session_date": "2026-04-30",
+    "dte": "0",
+    "settlement": "PM"
+  },
+  "is_partial": true,
+  "completeness_notes": [
+    "Fixture chain intentionally omits neighboring put contract."
+  ],
+  "contracts": [
+    {
+      "provider_symbol": "SPXW_FIXTURE_20260430C05000000",
+      "underlying": "SPX",
+      "product": "SPXW",
+      "expiry_date": "2026-04-30",
+      "strike": "5000",
+      "right": "CALL",
+      "bid": "10.00",
+      "ask": "10.40",
+      "quote_time": "2026-04-30T10:00:00-04:00"
+    },
+    {
+      "provider_symbol": "SPXW_FIXTURE_20260430P05000000",
+      "underlying": "SPX",
+      "product": "SPXW",
+      "expiry_date": "2026-04-30",
+      "strike": "5000",
+      "right": "PUT",
+      "bid": "9.80",
+      "ask": "10.20",
+      "quote_time": "2026-04-30T10:00:00-04:00"
+    }
+  ]
+}
