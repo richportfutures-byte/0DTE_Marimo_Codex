@@ -115,6 +115,9 @@ def _():
     from spx_inventory_playbook.market_data_facade import (
         evaluate_market_data_facade,
     )
+    from spx_inventory_playbook.market_data_preview import (
+        build_sanitized_market_data_preview,
+    )
     from spx_inventory_playbook.playbook import (
         Permission,
         get_action_permission_matrix,
@@ -169,6 +172,7 @@ def _():
         evaluate_inventory_rules,
         evaluate_market_data_facade,
         fixture_factories,
+        build_sanitized_market_data_preview,
         get_action_permission_matrix,
         get_conversion_triage_table,
         get_reference_cards,
@@ -198,10 +202,19 @@ def _(TIME_WINDOW_LABELS, TimeWindow, mo):
         value="Morning 9:45–10:30",
         label="Current time window",
     )
+    market_data_mode_selector = mo.ui.dropdown(
+        options={
+            "Default fail-closed": "default",
+            "Sanitized fixture preview": "preview",
+        },
+        value="Default fail-closed",
+        label="Market-data display mode",
+    )
     return (
         add_click_state,
         current_time_window_selector,
         daily_budget_input,
+        market_data_mode_selector,
         manage_click_state,
         positions_state,
         set_add_click,
@@ -275,28 +288,59 @@ def _(mo):
     mo.Html(
         '<div class="app-ribbon">'
         '<strong>Live-data-safe boundaries:</strong> '
-        'Live data requires approved source, timestamp, and freshness checks. '
-        'Greeks, IV, bid/ask, strikes, expiries, marks, fills, and P&amp;L '
-        'must never be fabricated. Missing or stale data fails closed, '
-        'degrades confidence, or requires manual confirmation. Bounded '
-        'decision support is allowed; automated order execution is not.'
+        'Live data requires approved source, timestamp, and freshness checks; '
+        'this notebook has no live mode. Greeks, IV, bid/ask, strikes, '
+        'expiries, and marks must be labeled by source. Missing or stale data '
+        'fails closed, degrades confidence, or requires manual confirmation. '
+        'Bounded decision support is allowed; automated live actions are '
+        'outside this app.'
         '</div>'
     )
     return
 
 
 @app.cell
-def _(evaluate_market_data_facade):
-    market_data_readiness = evaluate_market_data_facade(
-        underlying_quote=None,
-        option_chain=None,
-        atm_straddle=None,
+def _(
+    build_sanitized_market_data_preview,
+    evaluate_market_data_facade,
+    market_data_mode_selector,
+):
+    if market_data_mode_selector.value == "preview":
+        _preview = build_sanitized_market_data_preview()
+        market_data_readiness = _preview.facade_result
+        market_data_mode_label = "Sanitized fixture preview"
+        market_data_preview_disclosure = _preview.disclosure
+        market_data_atm_width_points = _preview.atm_straddle.width_points
+    else:
+        market_data_readiness = evaluate_market_data_facade(
+            underlying_quote=None,
+            option_chain=None,
+            atm_straddle=None,
+        )
+        market_data_mode_label = "No market data loaded"
+        market_data_preview_disclosure = (
+            "default fail-closed",
+            "not live",
+            "not broker data",
+        )
+        market_data_atm_width_points = None
+    return (
+        market_data_atm_width_points,
+        market_data_mode_label,
+        market_data_preview_disclosure,
+        market_data_readiness,
     )
-    return (market_data_readiness,)
 
 
 @app.cell
-def _(html_escape, market_data_readiness, mo):
+def _(
+    html_escape,
+    market_data_atm_width_points,
+    market_data_mode_label,
+    market_data_preview_disclosure,
+    market_data_readiness,
+    mo,
+):
     _mdr = market_data_readiness
     _health = _mdr.health
     _status = _health.status
@@ -343,9 +387,21 @@ def _(html_escape, market_data_readiness, mo):
         f'<div class="app-severity__subtitle">{_meta["subtitle"]}</div>'
         '</div></div>'
     )
+    _disclosure_html = "".join(
+        f"<span class=\"app-chip app-chip--blocked\">{html_escape(str(note))}</span>"
+        for note in market_data_preview_disclosure
+    )
+    _width_value = (
+        f"{market_data_atm_width_points} pts"
+        if market_data_atm_width_points is not None
+        else "unavailable"
+    )
 
     _freshness_html = (
         '<div class="app-grid-3">'
+        '<div class="app-stat"><div class="app-stat__label">Mode</div>'
+        f'<div class="app-stat__value">{html_escape(market_data_mode_label)}</div>'
+        f'<div style="margin-top:6px">{_disclosure_html}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Health status</div>'
         f'<div class="app-stat__value">{html_escape(_status.lower())}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
@@ -366,11 +422,17 @@ def _(html_escape, market_data_readiness, mo):
         'ATM straddle usable</div>'
         f'<div class="app-stat__value">{_yn(_mdr.atm_straddle_usable)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
+        'Chain-derived outputs usable</div>'
+        f'<div class="app-stat__value">{_yn(_mdr.chain_derived_outputs_usable)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
         'API-derived outputs usable</div>'
         f'<div class="app-stat__value">{_yn(_mdr.api_outputs_usable)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'Manual confirmation required</div>'
         f'<div class="app-stat__value">{_yn(_mdr.manual_confirmation_required)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'ATM straddle width</div>'
+        f'<div class="app-stat__value">{html_escape(_width_value)}</div></div>'
         '</div>'
     )
 
@@ -426,9 +488,20 @@ def _(fixture_factories, mo):
 
 
 @app.cell
-def _(current_time_window_selector, daily_budget_input, fixture_selector, mo):
+def _(
+    current_time_window_selector,
+    daily_budget_input,
+    fixture_selector,
+    market_data_mode_selector,
+    mo,
+):
     mo.hstack(
-        [fixture_selector, current_time_window_selector, daily_budget_input],
+        [
+            fixture_selector,
+            current_time_window_selector,
+            market_data_mode_selector,
+            daily_budget_input,
+        ],
         gap=1,
         justify="start",
         wrap=True,
