@@ -116,7 +116,8 @@ def _():
         evaluate_market_data_facade,
     )
     from spx_inventory_playbook.market_data_preview import (
-        build_sanitized_market_data_preview,
+        PREVIEW_SCENARIO_LABELS,
+        build_market_data_preview_scenario,
     )
     from spx_inventory_playbook.playbook import (
         Permission,
@@ -156,6 +157,14 @@ def _():
         "Negative GEX credit spread": negative_gex_credit_spread_state,
         "Near flip unclear": near_flip_unclear_state,
     }
+    market_data_scenario_names = (
+        "default_fail_closed",
+        "healthy_preview",
+        "stale_underlying",
+        "partial_chain",
+        "locked_liquidity",
+        "missing_atm_straddle",
+    )
     return (
         Permission,
         PositionSide,
@@ -164,7 +173,9 @@ def _():
         TIME_WINDOW_LABELS,
         TimeWindow,
         Urgency,
+        PREVIEW_SCENARIO_LABELS,
         asdict,
+        build_market_data_preview_scenario,
         calculate_futures_hedge,
         calculate_session_summary,
         calculate_trade_friction,
@@ -172,7 +183,6 @@ def _():
         evaluate_inventory_rules,
         evaluate_market_data_facade,
         fixture_factories,
-        build_sanitized_market_data_preview,
         get_action_permission_matrix,
         get_conversion_triage_table,
         get_reference_cards,
@@ -180,13 +190,14 @@ def _():
         get_structure_quick_reference,
         get_time_of_day_permission_matrix,
         html_escape,
+        market_data_scenario_names,
         time_urgency,
         validate_inventory_state,
     )
 
 
 @app.cell
-def _(TIME_WINDOW_LABELS, TimeWindow, mo):
+def _(PREVIEW_SCENARIO_LABELS, TIME_WINDOW_LABELS, TimeWindow, mo):
     positions_state, set_positions = mo.state(())
     add_click_state, set_add_click = mo.state(0)
     manage_click_state, set_manage_click = mo.state({})
@@ -203,10 +214,7 @@ def _(TIME_WINDOW_LABELS, TimeWindow, mo):
         label="Current time window",
     )
     market_data_mode_selector = mo.ui.dropdown(
-        options={
-            "Default fail-closed": "default",
-            "Sanitized fixture preview": "preview",
-        },
+        options=PREVIEW_SCENARIO_LABELS,
         value="Default fail-closed",
         label="Market-data display mode",
     )
@@ -301,34 +309,32 @@ def _(mo):
 
 @app.cell
 def _(
-    build_sanitized_market_data_preview,
-    evaluate_market_data_facade,
+    PREVIEW_SCENARIO_LABELS,
+    build_market_data_preview_scenario,
     market_data_mode_selector,
+    market_data_scenario_names,
 ):
-    if market_data_mode_selector.value == "preview":
-        _preview = build_sanitized_market_data_preview()
-        market_data_readiness = _preview.facade_result
-        market_data_mode_label = "Sanitized fixture preview"
-        market_data_preview_disclosure = _preview.disclosure
+    market_data_scenario_name = market_data_mode_selector.value
+    if market_data_scenario_name not in market_data_scenario_names:
+        market_data_scenario_name = PREVIEW_SCENARIO_LABELS.get(
+            str(market_data_scenario_name),
+            "default_fail_closed",
+        )
+
+    _preview = build_market_data_preview_scenario(market_data_scenario_name)
+    market_data_readiness = _preview.facade_result
+    market_data_mode_label = _preview.mode_label
+    market_data_preview_disclosure = _preview.disclosure
+    if _preview.atm_straddle is not None and market_data_readiness.atm_straddle_usable:
         market_data_atm_width_points = _preview.atm_straddle.width_points
     else:
-        market_data_readiness = evaluate_market_data_facade(
-            underlying_quote=None,
-            option_chain=None,
-            atm_straddle=None,
-        )
-        market_data_mode_label = "No market data loaded"
-        market_data_preview_disclosure = (
-            "default fail-closed",
-            "not live",
-            "not broker data",
-        )
         market_data_atm_width_points = None
     return (
         market_data_atm_width_points,
         market_data_mode_label,
         market_data_preview_disclosure,
         market_data_readiness,
+        market_data_scenario_name,
     )
 
 
@@ -339,6 +345,7 @@ def _(
     market_data_mode_label,
     market_data_preview_disclosure,
     market_data_readiness,
+    market_data_scenario_name,
     mo,
 ):
     _mdr = market_data_readiness
@@ -402,6 +409,8 @@ def _(
         '<div class="app-stat"><div class="app-stat__label">Mode</div>'
         f'<div class="app-stat__value">{html_escape(market_data_mode_label)}</div>'
         f'<div style="margin-top:6px">{_disclosure_html}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Scenario</div>'
+        f'<div class="app-stat__value">{html_escape(market_data_scenario_name)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Health status</div>'
         f'<div class="app-stat__value">{html_escape(_status.lower())}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
@@ -455,8 +464,10 @@ def _(
         '<div class="app-section__rule"></div></div>'
         '<div class="app-card">'
         '<div class="app-muted" style="margin-bottom:10px">'
-        'Default state: not live, no broker data loaded, and no raw provider '
-        'payloads in the notebook. API-derived outputs remain unavailable '
+        'No market data loaded is the default state: not live, no broker data '
+        'loaded, and no raw provider payloads in the notebook. Sanitized fixture '
+        'scenarios are not live and not broker data; they exist for '
+        'display verification only. API-derived outputs remain unavailable '
         'until canonical market-data snapshots pass freshness checks.'
         '</div>'
         + _severity_html

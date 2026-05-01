@@ -65,7 +65,13 @@ def test_notebook_source_includes_market_data_readiness_section() -> None:
     source = NOTEBOOK_PATH.read_text(encoding="utf-8")
 
     assert "evaluate_market_data_facade" in source
-    assert "Sanitized fixture preview" in source
+    assert "default_fail_closed" in source
+    assert "healthy_preview" in source
+    assert "stale_underlying" in source
+    assert "partial_chain" in source
+    assert "locked_liquidity" in source
+    assert "missing_atm_straddle" in source
+    assert "Sanitized fixture" in source
     assert "No market data loaded" in source
     assert "Market Data Readiness" in source
     assert "not live" in source
