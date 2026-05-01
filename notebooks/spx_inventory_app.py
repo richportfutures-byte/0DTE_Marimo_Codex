@@ -322,6 +322,31 @@ def _(
         )
 
     _preview = build_market_data_preview_scenario(market_data_scenario_name)
+    market_data_scenario_label = next(
+        label
+        for label, name in PREVIEW_SCENARIO_LABELS.items()
+        if name == market_data_scenario_name
+    )
+    market_data_scenario_note = {
+        "default_fail_closed": (
+            "No underlying quote, option chain, or ATM straddle is loaded."
+        ),
+        "healthy_preview": (
+            "Healthy sanitized fixture for display verification only."
+        ),
+        "stale_underlying": (
+            "Underlying quote is stale; derived outputs must stay blocked."
+        ),
+        "partial_chain": (
+            "Option chain is intentionally partial; ranking is not fully usable."
+        ),
+        "locked_liquidity": (
+            "Locked option quote detected; liquidity readiness is degraded."
+        ),
+        "missing_atm_straddle": (
+            "ATM straddle is unavailable; width outputs are intentionally hidden."
+        ),
+    }[market_data_scenario_name]
     market_data_readiness = _preview.facade_result
     market_data_mode_label = _preview.mode_label
     market_data_preview_disclosure = _preview.disclosure
@@ -334,7 +359,9 @@ def _(
         market_data_mode_label,
         market_data_preview_disclosure,
         market_data_readiness,
+        market_data_scenario_label,
         market_data_scenario_name,
+        market_data_scenario_note,
     )
 
 
@@ -345,7 +372,9 @@ def _(
     market_data_mode_label,
     market_data_preview_disclosure,
     market_data_readiness,
+    market_data_scenario_label,
     market_data_scenario_name,
+    market_data_scenario_note,
     mo,
 ):
     _mdr = market_data_readiness
@@ -373,8 +402,14 @@ def _(
     }
     _meta = _status_meta.get(_status, _status_meta["BLOCKED"])
 
-    def _yn(value):
-        return "yes" if value else "no"
+    def _flag_chip(value, true_label="YES", false_label="NO", true_good=True):
+        if value:
+            kind = "allowed" if true_good else "blocked"
+            label = true_label
+        else:
+            kind = "blocked" if true_good else "allowed"
+            label = false_label
+        return f'<span class="app-chip app-chip--{kind}">{label}</span>'
 
     def _list_html(values, empty_label):
         if not values:
@@ -410,9 +445,17 @@ def _(
         f'<div class="app-stat__value">{html_escape(market_data_mode_label)}</div>'
         f'<div style="margin-top:6px">{_disclosure_html}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Scenario</div>'
-        f'<div class="app-stat__value">{html_escape(market_data_scenario_name)}</div></div>'
+        f'<div class="app-stat__value">{html_escape(market_data_scenario_label)}</div>'
+        f'<div class="app-muted" style="margin-top:6px">'
+        f'{html_escape(market_data_scenario_note)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Health status</div>'
         f'<div class="app-stat__value">{html_escape(_status.lower())}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'API-derived outputs usable</div>'
+        f'<div class="app-stat__value">{_flag_chip(_mdr.api_outputs_usable, "USABLE", "BLOCKED")}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">'
+        'Manual confirmation required</div>'
+        f'<div class="app-stat__value">{_flag_chip(_mdr.manual_confirmation_required, "REQUIRED", "not required", False)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'Underlying freshness</div>'
         f'<div class="app-stat__value">{_mdr.underlying_freshness.value}</div></div>'
@@ -423,22 +466,16 @@ def _(
         f'<div class="app-stat__value">{_mdr.atm_straddle_freshness.value}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'Underlying quote usable</div>'
-        f'<div class="app-stat__value">{_yn(_mdr.underlying_usable)}</div></div>'
+        f'<div class="app-stat__value">{_flag_chip(_mdr.underlying_usable)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'Option chain usable</div>'
-        f'<div class="app-stat__value">{_yn(_mdr.option_chain_usable)}</div></div>'
+        f'<div class="app-stat__value">{_flag_chip(_mdr.option_chain_usable)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'ATM straddle usable</div>'
-        f'<div class="app-stat__value">{_yn(_mdr.atm_straddle_usable)}</div></div>'
+        f'<div class="app-stat__value">{_flag_chip(_mdr.atm_straddle_usable)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'Chain-derived outputs usable</div>'
-        f'<div class="app-stat__value">{_yn(_mdr.chain_derived_outputs_usable)}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">'
-        'API-derived outputs usable</div>'
-        f'<div class="app-stat__value">{_yn(_mdr.api_outputs_usable)}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">'
-        'Manual confirmation required</div>'
-        f'<div class="app-stat__value">{_yn(_mdr.manual_confirmation_required)}</div></div>'
+        f'<div class="app-stat__value">{_flag_chip(_mdr.chain_derived_outputs_usable)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">'
         'ATM straddle width</div>'
         f'<div class="app-stat__value">{html_escape(_width_value)}</div></div>'
