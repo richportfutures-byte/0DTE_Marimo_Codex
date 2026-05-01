@@ -11,6 +11,7 @@ import argparse
 import json
 import re
 import sys
+import urllib.error
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, TextIO
@@ -56,6 +57,20 @@ SENSITIVE_VALUE_PATTERNS = (
     re.compile(r"^/Users/[^/]+/"),
     re.compile(r"^[A-Za-z]:\\"),
     re.compile(r"(?i)^https?://(localhost|127\.0\.0\.1)(:|/|$)"),
+)
+SENSITIVE_CATEGORY_PARTS = (
+    "token",
+    "secret",
+    "credential",
+    "bearer",
+    "account",
+    "customer",
+    "client_secret",
+    "clientid",
+    "client_id",
+    "access_token",
+    "refresh_token",
+    "callback",
 )
 
 
@@ -290,7 +305,7 @@ def run(
             live_used=True,
             payload_captured=False,
             output_path=args.output,
-            reason=f"capture_failed:{type(exc).__name__}",
+            reason=_capture_failure_reason(exc),
         )
         return 1
 
@@ -416,6 +431,65 @@ def _print_status(
     stdout.write(f"payload_captured: {'yes' if payload_captured else 'no'}\n")
     stdout.write(f"sanitized_output_path: {output_path}\n")
     stdout.write(f"status: {reason}\n")
+
+
+def _capture_failure_reason(exc: BaseException) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        parts = ["capture_failed:HTTPError", f"http_status={exc.code}"]
+        reason = _safe_http_text(getattr(exc, "reason", None))
+        if reason:
+            parts.append(f"reason={reason}")
+        category = _safe_http_error_category(exc)
+        if category:
+            parts.append(f"error_category={category}")
+        return ":".join(parts)
+    return f"capture_failed:{type(exc).__name__}"
+
+
+def _safe_http_error_category(exc: urllib.error.HTTPError) -> str | None:
+    body = _read_http_error_body(exc)
+    if not body:
+        return None
+    try:
+        parsed = json.loads(body)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    for key in ("error", "errorCode", "code"):
+        value = parsed.get(key)
+        if isinstance(value, str):
+            safe_value = _safe_http_text(value)
+            if safe_value:
+                return safe_value
+    return None
+
+
+def _read_http_error_body(exc: urllib.error.HTTPError) -> str:
+    try:
+        body = exc.read(4096)
+    except Exception:
+        return ""
+    if not body:
+        return ""
+    return body.decode("utf-8", errors="replace")
+
+
+def _safe_http_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    if not stripped or len(stripped) > 80:
+        return None
+    normalized = stripped.lower().replace("-", "_")
+    collapsed = normalized.replace("_", "")
+    if any(part in normalized or part in collapsed for part in SENSITIVE_CATEGORY_PARTS):
+        return None
+    if _sanitize_string(stripped) == SENSITIVE_REPLACEMENT:
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9_.: -]+", stripped):
+        return None
+    return stripped
 
 
 def _is_sensitive_key(key: str) -> bool:

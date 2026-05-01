@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import sys
+import urllib.error
 from pathlib import Path
 from typing import Any
 
@@ -279,3 +280,78 @@ def test_confirmed_live_mode_uses_injected_fetcher_and_sanitizes_output(tmp_path
     written = json.loads(output_path.read_text(encoding="utf-8"))
     assert_no_sensitive_content(written)
     assert "payload_captured: yes" in output.getvalue()
+
+
+def test_http_error_diagnostics_include_only_safe_status_reason_and_category(
+    tmp_path: Path,
+) -> None:
+    def fetcher(request: object) -> dict[str, object]:
+        raise urllib.error.HTTPError(
+            url="https://api.schwabapi.com/marketdata/v1/chains?symbol=$SPX",
+            code=400,
+            msg="Bad Request",
+            hdrs={},
+            fp=io.BytesIO(
+                b'{"error":"bad_symbol","access_token":"raw-secret-token-value"}'
+            ),
+        )
+
+    output = io.StringIO()
+    exit_code = capture.run(
+        [
+            "--live",
+            "--confirm-live",
+            capture.DEFAULT_CONFIRM_PHRASE,
+            "--access-token-stdin",
+            "--output",
+            str(tmp_path / "sanitized.json"),
+        ],
+        fetcher=fetcher,
+        stdin=io.StringIO("manual-live-credential"),
+        stdout=output,
+    )
+
+    text = output.getvalue()
+    assert exit_code == 1
+    assert "capture_failed:HTTPError" in text
+    assert "http_status=400" in text
+    assert "reason=Bad Request" in text
+    assert "error_category=bad_symbol" in text
+    assert "raw-secret-token-value" not in text
+    assert "access_token" not in text
+    assert "https://" not in text
+
+
+def test_http_error_diagnostics_suppress_sensitive_error_categories(
+    tmp_path: Path,
+) -> None:
+    def fetcher(request: object) -> dict[str, object]:
+        raise urllib.error.HTTPError(
+            url="https://api.schwabapi.com/marketdata/v1/chains?symbol=$SPX",
+            code=401,
+            msg="Unauthorized",
+            hdrs={},
+            fp=io.BytesIO(b'{"error":"invalid_token"}'),
+        )
+
+    output = io.StringIO()
+    exit_code = capture.run(
+        [
+            "--live",
+            "--confirm-live",
+            capture.DEFAULT_CONFIRM_PHRASE,
+            "--access-token-stdin",
+            "--output",
+            str(tmp_path / "sanitized.json"),
+        ],
+        fetcher=fetcher,
+        stdin=io.StringIO("manual-live-credential"),
+        stdout=output,
+    )
+
+    text = output.getvalue()
+    assert exit_code == 1
+    assert "http_status=401" in text
+    assert "reason=Unauthorized" in text
+    assert "invalid_token" not in text
+    assert "error_category=" not in text
