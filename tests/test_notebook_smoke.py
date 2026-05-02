@@ -77,3 +77,16 @@ def test_notebook_source_includes_market_data_readiness_section() -> None:
     assert "not live" in source
     assert "not broker data" in source
     assert "Manual confirmation required" in source
+
+
+def test_notebook_source_includes_read_only_option_chain_fixture_panel() -> None:
+    source = NOTEBOOK_PATH.read_text(encoding="utf-8")
+
+    assert "FixtureOptionChainProvider" in source
+    assert "Option Chain Fixture View" in source
+    assert "app-owned sanitized" in source
+    assert "fixture" in source
+    assert "Not live market data" in source
+    assert "no refresh" in source
+    assert "orders" in source
+    assert "no trading authorization changes" in source

@@ -94,7 +94,11 @@ def _(mo):
 def _():
     from dataclasses import asdict
     from html import escape as html_escape
+    from pathlib import Path
 
+    from spx_inventory_playbook.adapters.option_chain_provider import (
+        FixtureOptionChainProvider,
+    )
     from spx_inventory_playbook.calculators import (
         calculate_futures_hedge,
         calculate_trade_friction,
@@ -166,6 +170,7 @@ def _():
         "missing_atm_straddle",
     )
     return (
+        FixtureOptionChainProvider,
         Permission,
         PositionSide,
         PositionStatus,
@@ -174,6 +179,7 @@ def _():
         TimeWindow,
         Urgency,
         PREVIEW_SCENARIO_LABELS,
+        Path,
         asdict,
         build_market_data_preview_scenario,
         calculate_futures_hedge,
@@ -512,6 +518,165 @@ def _(
         + _detail_html
         + '</div>'
     )
+    return
+
+
+@app.cell
+def _(FixtureOptionChainProvider, Path):
+    option_chain_fixture_path = (
+        Path(__file__).resolve().parent
+        / "fixtures"
+        / "market_data"
+        / "schwab"
+        / "raw_option_chain_0dte.sanitized.json"
+    )
+    option_chain_provider_result = FixtureOptionChainProvider(
+        option_chain_fixture_path,
+        source_label="fixture: sanitized Schwab option-chain capture",
+    ).get_spx_0dte_selection()
+    return option_chain_fixture_path, option_chain_provider_result
+
+
+@app.cell
+def _(html_escape, mo, option_chain_provider_result):
+    _result = option_chain_provider_result
+
+    def _fmt(value, precision=2):
+        if value is None:
+            return "unavailable"
+        if isinstance(value, float):
+            return f"{value:,.{precision}f}"
+        return str(value)
+
+    def _chip(value, kind="allowed"):
+        return (
+            f'<span class="app-chip app-chip--{kind}">'
+            f"{html_escape(str(value))}</span>"
+        )
+
+    _status_kind = "allowed" if _result.status == "available" else "blocked"
+    _reason = _result.reason_code or "none"
+    _source_html = (
+        '<div class="app-grid-3">'
+        '<div class="app-stat"><div class="app-stat__label">Source</div>'
+        f'<div class="app-stat__value">{html_escape(_result.source_label)}</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'Fixture data only. Not live. No broker connection.</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Provider</div>'
+        f'<div class="app-stat__value">{html_escape(_result.provider_name)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Status</div>'
+        f'<div class="app-stat__value">{_chip(_result.status, _status_kind)}</div>'
+        f'<div class="app-muted" style="margin-top:6px">Reason: {html_escape(_reason)}</div></div>'
+        '</div>'
+    )
+
+    if _result.status != "available" or _result.selection_view is None:
+        mo.Html(
+            '<div class="app-section">'
+            '<div class="app-section__title">Option Chain Fixture View</div>'
+            '<div class="app-section__rule"></div></div>'
+            '<div class="app-card">'
+            '<div class="app-muted" style="margin-bottom:10px">'
+            'Read-only fixture-backed option-chain panel. No live refresh, no '
+            'orders, and no trading authorization changes.'
+            '</div>'
+            + _source_html
+            + '<div style="margin-top:10px">'
+            + _chip("option chain unavailable", "blocked")
+            + '</div></div>'
+        )
+    else:
+        _view = _result.selection_view
+        _snapshot = _result.snapshot
+        _underlying = _snapshot.underlying if _snapshot is not None else None
+        _expiration = _view.selected_expiration
+        _underlying_symbol = _view.underlying_symbol
+        _underlying_html = (
+            '<div class="app-grid-3" style="margin-top:10px">'
+            '<div class="app-stat"><div class="app-stat__label">Underlying</div>'
+            f'<div class="app-stat__value">{html_escape(_underlying_symbol)}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Bid / Ask</div>'
+            f'<div class="app-stat__value">{_fmt(getattr(_underlying, "bid", None))} / '
+            f'{_fmt(getattr(_underlying, "ask", None))}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Last / Mark</div>'
+            f'<div class="app-stat__value">{_fmt(getattr(_underlying, "last", None))} / '
+            f'{_fmt(getattr(_underlying, "mark", None))}</div></div>'
+            '</div>'
+        )
+
+        if _expiration is None:
+            _selection_html = (
+                '<div style="margin-top:10px">'
+                + _chip("selection unavailable", "blocked")
+                + '</div>'
+            )
+        else:
+            _straddle = _expiration.atm_straddle
+            _straddle_value = (
+                f"{_straddle.value:,.2f}"
+                if _straddle.status == "available" and _straddle.value is not None
+                else "unavailable"
+            )
+            _rows = []
+            for _item in _expiration.contracts:
+                _contract = _item.contract
+                _liq = _item.liquidity
+                _spread_kind = (
+                    "allowed"
+                    if _liq.spread_state == "acceptable"
+                    else "blocked"
+                )
+                _rows.append(
+                    "<tr>"
+                    f"<td>{html_escape(_contract.side)}</td>"
+                    f"<td>{_contract.strike:,.1f}</td>"
+                    f"<td>{_fmt(_contract.bid)}</td>"
+                    f"<td>{_fmt(_contract.ask)}</td>"
+                    f"<td>{_fmt(_contract.mark)}</td>"
+                    f"<td>{_fmt(_liq.spread)}</td>"
+                    f"<td>{_fmt(_liq.midpoint)}</td>"
+                    f"<td>{_chip(_liq.spread_state, _spread_kind)}</td>"
+                    "</tr>"
+                )
+            _selection_html = (
+                '<div class="app-grid-3" style="margin-top:10px">'
+                '<div class="app-stat"><div class="app-stat__label">Expiration</div>'
+                f'<div class="app-stat__value">{_expiration.expiration_date}</div>'
+                f'<div class="app-muted" style="margin-top:6px">DTE {_fmt(_expiration.days_to_expiration, 0)}</div></div>'
+                '<div class="app-stat"><div class="app-stat__label">ATM strike</div>'
+                f'<div class="app-stat__value">{_expiration.atm_strike:,.1f}</div>'
+                f'<div class="app-muted" style="margin-top:6px">Ref {_expiration.reference_underlying_price:,.2f}</div></div>'
+                '<div class="app-stat"><div class="app-stat__label">ATM straddle</div>'
+                f'<div class="app-stat__value">{html_escape(_straddle_value)}</div>'
+                f'<div class="app-muted" style="margin-top:6px">Status {_straddle.status}</div></div>'
+                '</div>'
+                '<div style="overflow-x:auto;margin-top:12px">'
+                '<table style="width:100%;border-collapse:collapse;font-size:0.86em">'
+                '<thead><tr>'
+                '<th align="left">Side</th><th align="right">Strike</th>'
+                '<th align="right">Bid</th><th align="right">Ask</th>'
+                '<th align="right">Mark</th><th align="right">Spread</th>'
+                '<th align="right">Mid</th><th align="left">Liquidity</th>'
+                '</tr></thead><tbody>'
+                + "".join(_rows)
+                + '</tbody></table></div>'
+            )
+
+        mo.Html(
+            '<div class="app-section">'
+            '<div class="app-section__title">Option Chain Fixture View</div>'
+            '<div class="app-section__rule"></div></div>'
+            '<div class="app-card">'
+            '<div class="app-muted" style="margin-bottom:10px">'
+            'Read-only SPX option-chain display from an app-owned sanitized '
+            'fixture. Not live market data, not broker data, no refresh, no '
+            'orders, and no trading authorization changes.'
+            '</div>'
+            + _source_html
+            + _underlying_html
+            + _selection_html
+            + '</div>'
+        )
     return
 
 
