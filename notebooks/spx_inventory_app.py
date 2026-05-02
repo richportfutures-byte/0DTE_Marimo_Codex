@@ -834,7 +834,7 @@ def _(
     )
 
     if _result.status != "available" or _result.selection_view is None:
-        mo.vstack(
+        _option_chain_panel = mo.vstack(
             [
                 _control_widgets,
                 mo.Html(
@@ -933,7 +933,7 @@ def _(
                 + '</tbody></table></div>'
             )
 
-        mo.vstack(
+        _option_chain_panel = mo.vstack(
             [
                 _control_widgets,
                 mo.Html(
@@ -954,6 +954,7 @@ def _(
                 ),
             ]
         )
+    _option_chain_panel
     return
 
 
