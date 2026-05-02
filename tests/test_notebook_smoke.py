@@ -84,9 +84,13 @@ def test_notebook_source_includes_read_only_option_chain_fixture_panel() -> None
 
     assert "FixtureOptionChainProvider" in source
     assert "Option Chain Fixture View" in source
+    assert "Reload Fixture" in source
+    assert "static_fixture" in source
+    assert "Freshness status" in source
     assert "app-owned sanitized" in source
     assert "fixture" in source
     assert "Not live market data" in source
-    assert "no refresh" in source
+    assert "no automatic refresh" in source
     assert "orders" in source
-    assert "no trading authorization changes" in source
+    assert "trading" in source
+    assert "authorization changes" in source

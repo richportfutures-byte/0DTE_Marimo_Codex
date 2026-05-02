@@ -96,6 +96,9 @@ def _():
     from html import escape as html_escape
     from pathlib import Path
 
+    from spx_inventory_playbook.adapters.option_chain_freshness import (
+        classify_option_chain_freshness,
+    )
     from spx_inventory_playbook.adapters.option_chain_provider import (
         FixtureOptionChainProvider,
     )
@@ -185,6 +188,7 @@ def _():
         calculate_futures_hedge,
         calculate_session_summary,
         calculate_trade_friction,
+        classify_option_chain_freshness,
         create_position,
         evaluate_inventory_rules,
         evaluate_market_data_facade,
@@ -207,6 +211,7 @@ def _(PREVIEW_SCENARIO_LABELS, TIME_WINDOW_LABELS, TimeWindow, mo):
     positions_state, set_positions = mo.state(())
     add_click_state, set_add_click = mo.state(0)
     manage_click_state, set_manage_click = mo.state({})
+    option_chain_refresh_click_state, set_option_chain_refresh_click = mo.state(0)
     daily_budget_input = mo.ui.number(
         value=2000.0,
         step=100.0,
@@ -230,9 +235,11 @@ def _(PREVIEW_SCENARIO_LABELS, TIME_WINDOW_LABELS, TimeWindow, mo):
         daily_budget_input,
         market_data_mode_selector,
         manage_click_state,
+        option_chain_refresh_click_state,
         positions_state,
         set_add_click,
         set_manage_click,
+        set_option_chain_refresh_click,
         set_positions,
     )
 
@@ -522,7 +529,7 @@ def _(
 
 
 @app.cell
-def _(FixtureOptionChainProvider, Path):
+def _(Path, mo):
     option_chain_fixture_path = (
         Path(__file__).resolve().parent
         / "fixtures"
@@ -530,16 +537,43 @@ def _(FixtureOptionChainProvider, Path):
         / "schwab"
         / "raw_option_chain_0dte.sanitized.json"
     )
+    option_chain_refresh_button = mo.ui.run_button(label="Reload Fixture")
+    return option_chain_fixture_path, option_chain_refresh_button
+
+
+@app.cell
+def _(
+    FixtureOptionChainProvider,
+    classify_option_chain_freshness,
+    option_chain_fixture_path,
+    option_chain_refresh_button,
+    option_chain_refresh_click_state,
+    set_option_chain_refresh_click,
+):
+    _refresh_click_count = run_button_click_count(option_chain_refresh_button)
+    if _refresh_click_count > option_chain_refresh_click_state():
+        set_option_chain_refresh_click(_refresh_click_count)
+
     option_chain_provider_result = FixtureOptionChainProvider(
         option_chain_fixture_path,
         source_label="fixture: sanitized Schwab option-chain capture",
     ).get_spx_0dte_selection()
-    return option_chain_fixture_path, option_chain_provider_result
+    option_chain_freshness = classify_option_chain_freshness(
+        option_chain_provider_result
+    )
+    return option_chain_freshness, option_chain_provider_result
 
 
 @app.cell
-def _(html_escape, mo, option_chain_provider_result):
+def _(
+    html_escape,
+    mo,
+    option_chain_freshness,
+    option_chain_provider_result,
+    option_chain_refresh_button,
+):
     _result = option_chain_provider_result
+    _freshness = option_chain_freshness
 
     def _fmt(value, precision=2):
         if value is None:
@@ -556,6 +590,16 @@ def _(html_escape, mo, option_chain_provider_result):
 
     _status_kind = "allowed" if _result.status == "available" else "blocked"
     _reason = _result.reason_code or "none"
+    _loaded_at = (
+        _result.loaded_at.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+        if _result.loaded_at is not None
+        else "unavailable"
+    )
+    _freshness_kind = (
+        "allowed"
+        if _freshness.status in {"fresh", "static_fixture"}
+        else "blocked"
+    )
     _source_html = (
         '<div class="app-grid-3">'
         '<div class="app-stat"><div class="app-stat__label">Source</div>'
@@ -569,21 +613,40 @@ def _(html_escape, mo, option_chain_provider_result):
         f'<div class="app-muted" style="margin-top:6px">Reason: {html_escape(_reason)}</div></div>'
         '</div>'
     )
+    _freshness_html = (
+        '<div class="app-grid-3" style="margin-top:10px">'
+        '<div class="app-stat"><div class="app-stat__label">Freshness status</div>'
+        f'<div class="app-stat__value">{_chip(_freshness.status, _freshness_kind)}</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'static_fixture means display-only fixture data, not live market data.</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Source type</div>'
+        f'<div class="app-stat__value">{html_escape(_freshness.source_type)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Loaded at</div>'
+        f'<div class="app-stat__value">{html_escape(_loaded_at)}</div></div>'
+        '</div>'
+    )
 
     if _result.status != "available" or _result.selection_view is None:
-        mo.Html(
-            '<div class="app-section">'
-            '<div class="app-section__title">Option Chain Fixture View</div>'
-            '<div class="app-section__rule"></div></div>'
-            '<div class="app-card">'
-            '<div class="app-muted" style="margin-bottom:10px">'
-            'Read-only fixture-backed option-chain panel. No live refresh, no '
-            'orders, and no trading authorization changes.'
-            '</div>'
-            + _source_html
-            + '<div style="margin-top:10px">'
-            + _chip("option chain unavailable", "blocked")
-            + '</div></div>'
+        mo.vstack(
+            [
+                option_chain_refresh_button,
+                mo.Html(
+                    '<div class="app-section">'
+                    '<div class="app-section__title">Option Chain Fixture View</div>'
+                    '<div class="app-section__rule"></div></div>'
+                    '<div class="app-card">'
+                    '<div class="app-muted" style="margin-bottom:10px">'
+                    'Read-only fixture-backed option-chain panel. Manual reload '
+                    'only; no live refresh, no orders, and no trading '
+                    'authorization changes.'
+                    '</div>'
+                    + _source_html
+                    + _freshness_html
+                    + '<div style="margin-top:10px">'
+                    + _chip("option chain unavailable", "blocked")
+                    + '</div></div>'
+                ),
+            ]
         )
     else:
         _view = _result.selection_view
@@ -662,20 +725,27 @@ def _(html_escape, mo, option_chain_provider_result):
                 + '</tbody></table></div>'
             )
 
-        mo.Html(
-            '<div class="app-section">'
-            '<div class="app-section__title">Option Chain Fixture View</div>'
-            '<div class="app-section__rule"></div></div>'
-            '<div class="app-card">'
-            '<div class="app-muted" style="margin-bottom:10px">'
-            'Read-only SPX option-chain display from an app-owned sanitized '
-            'fixture. Not live market data, not broker data, no refresh, no '
-            'orders, and no trading authorization changes.'
-            '</div>'
-            + _source_html
-            + _underlying_html
-            + _selection_html
-            + '</div>'
+        mo.vstack(
+            [
+                option_chain_refresh_button,
+                mo.Html(
+                    '<div class="app-section">'
+                    '<div class="app-section__title">Option Chain Fixture View</div>'
+                    '<div class="app-section__rule"></div></div>'
+                    '<div class="app-card">'
+                    '<div class="app-muted" style="margin-bottom:10px">'
+                    'Read-only SPX option-chain display from an app-owned sanitized '
+                    'fixture. Not live market data, not broker data, manual reload '
+                    'only, no automatic refresh, no orders, and no trading '
+                    'authorization changes.'
+                    '</div>'
+                    + _source_html
+                    + _freshness_html
+                    + _underlying_html
+                    + _selection_html
+                    + '</div>'
+                ),
+            ]
         )
     return
 

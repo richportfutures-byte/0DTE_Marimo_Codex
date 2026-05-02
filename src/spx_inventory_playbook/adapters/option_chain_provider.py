@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Callable, Literal, Protocol
 
 from spx_inventory_playbook.adapters.schwab_option_chain import (
     SchwabOptionChainParserError,
@@ -19,6 +20,11 @@ from spx_inventory_playbook.adapters.schwab_option_chain_selection import (
 
 
 ProviderStatus = Literal["available", "unavailable", "error"]
+ProviderSourceType = Literal["fixture", "live", "unknown"]
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class OptionChainProvider(Protocol):
@@ -32,8 +38,11 @@ class OptionChainProvider(Protocol):
 class OptionChainProviderResult:
     provider_name: str
     source_label: str
+    source_type: ProviderSourceType
     status: ProviderStatus
     reason_code: str | None = None
+    loaded_at: datetime | None = None
+    is_static_source: bool = False
     fixture_path: Path | None = None
     snapshot: SchwabOptionChainSnapshot | None = None
     selection_view: OptionChainSelectionView | None = None
@@ -43,8 +52,11 @@ class OptionChainProviderResult:
             "OptionChainProviderResult("
             f"provider_name={self.provider_name!r}, "
             f"source_label={self.source_label!r}, "
+            f"source_type={self.source_type!r}, "
             f"status={self.status!r}, "
             f"reason_code={self.reason_code!r}, "
+            f"loaded_at={self.loaded_at.isoformat() if self.loaded_at else None!r}, "
+            f"is_static_source={self.is_static_source!r}, "
             f"fixture_path={str(self.fixture_path)!r}, "
             f"has_snapshot={self.snapshot is not None!r}, "
             f"has_selection_view={self.selection_view is not None!r})"
@@ -58,22 +70,24 @@ class FixtureOptionChainProvider:
     fixture_path: Path
     provider_name: str = "schwab_fixture"
     source_label: str = "fixture"
+    clock: Callable[[], datetime] = _utc_now
 
     def get_spx_0dte_selection(self) -> OptionChainProviderResult:
+        loaded_at = self.clock()
         try:
             payload = json.loads(self.fixture_path.read_text(encoding="utf-8"))
         except FileNotFoundError:
-            return self._result("error", "fixture_not_found")
+            return self._result("error", "fixture_not_found", loaded_at=loaded_at)
         except OSError:
-            return self._result("error", "fixture_read_error")
+            return self._result("error", "fixture_read_error", loaded_at=loaded_at)
         except json.JSONDecodeError:
-            return self._result("error", "fixture_json_malformed")
+            return self._result("error", "fixture_json_malformed", loaded_at=loaded_at)
 
         try:
             snapshot = parse_schwab_option_chain(payload)
             selection_view = build_spx_0dte_selection_view(snapshot)
         except SchwabOptionChainParserError:
-            return self._result("error", "fixture_parse_error")
+            return self._result("error", "fixture_parse_error", loaded_at=loaded_at)
 
         if selection_view.status != "available":
             reason_code = (
@@ -84,6 +98,7 @@ class FixtureOptionChainProvider:
             return self._result(
                 "unavailable",
                 reason_code,
+                loaded_at=loaded_at,
                 snapshot=snapshot,
                 selection_view=selection_view,
             )
@@ -91,6 +106,7 @@ class FixtureOptionChainProvider:
         return self._result(
             "available",
             None,
+            loaded_at=loaded_at,
             snapshot=snapshot,
             selection_view=selection_view,
         )
@@ -100,14 +116,18 @@ class FixtureOptionChainProvider:
         status: ProviderStatus,
         reason_code: str | None,
         *,
+        loaded_at: datetime,
         snapshot: SchwabOptionChainSnapshot | None = None,
         selection_view: OptionChainSelectionView | None = None,
     ) -> OptionChainProviderResult:
         return OptionChainProviderResult(
             provider_name=self.provider_name,
             source_label=self.source_label,
+            source_type="fixture",
             status=status,
             reason_code=reason_code,
+            loaded_at=loaded_at,
+            is_static_source=True,
             fixture_path=self.fixture_path,
             snapshot=snapshot,
             selection_view=selection_view,
@@ -123,8 +143,11 @@ class LiveSchwabOptionChainProvider:
         return OptionChainProviderResult(
             provider_name=self.provider_name,
             source_label=self.source_label,
+            source_type="live",
             status="unavailable",
             reason_code="live_provider_not_implemented",
+            loaded_at=None,
+            is_static_source=False,
         )
 
 
@@ -133,5 +156,6 @@ __all__ = [
     "LiveSchwabOptionChainProvider",
     "OptionChainProvider",
     "OptionChainProviderResult",
+    "ProviderSourceType",
     "ProviderStatus",
 ]
