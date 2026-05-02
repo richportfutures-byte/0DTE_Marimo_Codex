@@ -96,6 +96,9 @@ def _():
     from html import escape as html_escape
     from pathlib import Path
 
+    from spx_inventory_playbook.adapters.option_chain_context import (
+        build_option_chain_context_flags,
+    )
     from spx_inventory_playbook.adapters.option_chain_freshness import (
         classify_option_chain_freshness,
     )
@@ -185,6 +188,7 @@ def _():
         Path,
         asdict,
         build_market_data_preview_scenario,
+        build_option_chain_context_flags,
         calculate_futures_hedge,
         calculate_session_summary,
         calculate_trade_friction,
@@ -544,6 +548,7 @@ def _(Path, mo):
 @app.cell
 def _(
     FixtureOptionChainProvider,
+    build_option_chain_context_flags,
     classify_option_chain_freshness,
     option_chain_fixture_path,
     option_chain_refresh_button,
@@ -561,19 +566,29 @@ def _(
     option_chain_freshness = classify_option_chain_freshness(
         option_chain_provider_result
     )
-    return option_chain_freshness, option_chain_provider_result
+    option_chain_context_flags = build_option_chain_context_flags(
+        option_chain_provider_result.selection_view,
+        option_chain_freshness,
+    )
+    return (
+        option_chain_context_flags,
+        option_chain_freshness,
+        option_chain_provider_result,
+    )
 
 
 @app.cell
 def _(
     html_escape,
     mo,
+    option_chain_context_flags,
     option_chain_freshness,
     option_chain_provider_result,
     option_chain_refresh_button,
 ):
     _result = option_chain_provider_result
     _freshness = option_chain_freshness
+    _context = option_chain_context_flags
 
     def _fmt(value, precision=2):
         if value is None:
@@ -625,6 +640,40 @@ def _(
         f'<div class="app-stat__value">{html_escape(_loaded_at)}</div></div>'
         '</div>'
     )
+    _context_kind = (
+        "allowed"
+        if _context.operator_warning_level == "info"
+        else "blocked"
+    )
+    _reason_items = (
+        "".join(
+            f"<li>{html_escape(str(code))}</li>"
+            for code in _context.reason_codes
+        )
+        or '<li>none</li>'
+    )
+    _context_html = (
+        '<div class="app-grid-3" style="margin-top:10px">'
+        '<div class="app-stat"><div class="app-stat__label">Data context</div>'
+        f'<div class="app-stat__value">{html_escape(_context.data_context)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Warning level</div>'
+        f'<div class="app-stat__value">{_chip(_context.operator_warning_level, _context_kind)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Straddle</div>'
+        f'<div class="app-stat__value">{html_escape(_context.straddle_context)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Liquidity</div>'
+        f'<div class="app-stat__value">{html_escape(_context.liquidity_context)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Greeks</div>'
+        f'<div class="app-stat__value">{html_escape(_context.greek_context)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Context scope</div>'
+        '<div class="app-stat__value">display only</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'These flags do not authorize trades or change playbook rules.</div></div>'
+        '</div>'
+        '<div style="margin-top:10px"><div class="app-stat__label">'
+        'Context reason codes</div><ul class="app-list">'
+        + _reason_items
+        + '</ul></div>'
+    )
 
     if _result.status != "available" or _result.selection_view is None:
         mo.vstack(
@@ -642,6 +691,7 @@ def _(
                     '</div>'
                     + _source_html
                     + _freshness_html
+                    + _context_html
                     + '<div style="margin-top:10px">'
                     + _chip("option chain unavailable", "blocked")
                     + '</div></div>'
@@ -741,6 +791,7 @@ def _(
                     '</div>'
                     + _source_html
                     + _freshness_html
+                    + _context_html
                     + _underlying_html
                     + _selection_html
                     + '</div>'

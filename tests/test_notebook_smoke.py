@@ -83,10 +83,16 @@ def test_notebook_source_includes_read_only_option_chain_fixture_panel() -> None
     source = NOTEBOOK_PATH.read_text(encoding="utf-8")
 
     assert "FixtureOptionChainProvider" in source
+    assert "build_option_chain_context_flags" in source
     assert "Option Chain Fixture View" in source
     assert "Reload Fixture" in source
     assert "static_fixture" in source
     assert "Freshness status" in source
+    assert "Data context" in source
+    assert "Warning level" in source
+    assert "Context reason codes" in source
+    assert "display only" in source
+    assert "These flags do not authorize trades or change playbook rules" in source
     assert "app-owned sanitized" in source
     assert "fixture" in source
     assert "Not live market data" in source
