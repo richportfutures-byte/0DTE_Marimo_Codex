@@ -276,7 +276,9 @@ def test_confirmed_live_mode_uses_injected_fetcher_and_sanitizes_output(tmp_path
 
     assert exit_code == 0
     assert len(requests) == 1
-    assert requests[0].symbol == "SPX"
+    assert requests[0].symbol == "$SPX"
+    assert ("includeUnderlyingQuote", "TRUE") in requests[0].query
+    assert ("includeQuotes", "TRUE") not in requests[0].query
     written = json.loads(output_path.read_text(encoding="utf-8"))
     assert_no_sensitive_content(written)
     assert "payload_captured: yes" in output.getvalue()

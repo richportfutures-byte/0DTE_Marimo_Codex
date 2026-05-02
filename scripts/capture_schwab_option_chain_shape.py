@@ -218,7 +218,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--shape-report", type=Path)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--confirm-live", default="")
-    parser.add_argument("--symbol", default="SPX")
+    parser.add_argument("--symbol", default="$SPX")
     parser.add_argument("--endpoint-url", default=DEFAULT_CHAIN_URL)
     parser.add_argument("--timeout-seconds", type=float, default=10.0)
     parser.add_argument("--access-token-file", type=Path)
@@ -358,7 +358,7 @@ def _capture_request(args: argparse.Namespace, *, live_credential: str) -> Optio
         ("contractType", args.contract_type),
         ("strategy", args.strategy),
         ("strikeCount", args.strike_count),
-        ("includeQuotes", args.include_quotes),
+        ("includeUnderlyingQuote", args.include_quotes),
     ]
     if args.from_date:
         query.append(("fromDate", args.from_date))
