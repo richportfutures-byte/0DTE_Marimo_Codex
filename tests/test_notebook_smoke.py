@@ -100,3 +100,15 @@ def test_notebook_source_includes_read_only_option_chain_fixture_panel() -> None
     assert "orders" in source
     assert "trading" in source
     assert "authorization changes" in source
+
+
+def test_notebook_source_includes_local_only_paper_intent_ledger() -> None:
+    source = NOTEBOOK_PATH.read_text(encoding="utf-8")
+
+    assert "PaperTradeLedger" in source
+    assert "Record Paper Intent" in source
+    assert "Paper Intent Ledger" in source
+    assert "Local paper-only recordkeeping" in source
+    assert "No broker submission" in source
+    assert "no execution" in source
+    assert "no playbook authorization changes" in source

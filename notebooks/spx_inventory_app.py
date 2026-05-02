@@ -129,6 +129,11 @@ def _():
         PREVIEW_SCENARIO_LABELS,
         build_market_data_preview_scenario,
     )
+    from spx_inventory_playbook.paper_trades import (
+        PaperTradeLedger,
+        PaperTradeLeg,
+        create_paper_trade_intent,
+    )
     from spx_inventory_playbook.playbook import (
         Permission,
         get_action_permission_matrix,
@@ -178,6 +183,8 @@ def _():
     return (
         FixtureOptionChainProvider,
         Permission,
+        PaperTradeLedger,
+        PaperTradeLeg,
         PositionSide,
         PositionStatus,
         PositionStructure,
@@ -194,6 +201,7 @@ def _():
         calculate_trade_friction,
         classify_option_chain_freshness,
         create_position,
+        create_paper_trade_intent,
         evaluate_inventory_rules,
         evaluate_market_data_facade,
         fixture_factories,
@@ -211,11 +219,13 @@ def _():
 
 
 @app.cell
-def _(PREVIEW_SCENARIO_LABELS, TIME_WINDOW_LABELS, TimeWindow, mo):
+def _(PREVIEW_SCENARIO_LABELS, PaperTradeLedger, TIME_WINDOW_LABELS, TimeWindow, mo):
     positions_state, set_positions = mo.state(())
     add_click_state, set_add_click = mo.state(0)
     manage_click_state, set_manage_click = mo.state({})
     option_chain_refresh_click_state, set_option_chain_refresh_click = mo.state(0)
+    paper_trade_ledger_state, set_paper_trade_ledger = mo.state(PaperTradeLedger())
+    paper_trade_click_state, set_paper_trade_click = mo.state(0)
     daily_budget_input = mo.ui.number(
         value=2000.0,
         step=100.0,
@@ -240,10 +250,14 @@ def _(PREVIEW_SCENARIO_LABELS, TIME_WINDOW_LABELS, TimeWindow, mo):
         market_data_mode_selector,
         manage_click_state,
         option_chain_refresh_click_state,
+        paper_trade_click_state,
+        paper_trade_ledger_state,
         positions_state,
         set_add_click,
         set_manage_click,
         set_option_chain_refresh_click,
+        set_paper_trade_click,
+        set_paper_trade_ledger,
         set_positions,
     )
 
@@ -1009,6 +1023,168 @@ def _(mo, rule_decision, selected_state, validation_result):
                 'style="margin:14px 0 6px;padding:0 4px">Validation</div>'
             ),
             *_val_elements,
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    paper_intent_form = mo.ui.dictionary(
+        {
+            "strategy_label": mo.ui.text(
+                label="Paper strategy label",
+                full_width=True,
+            ),
+            "thesis": mo.ui.text(
+                label="Paper thesis",
+                full_width=True,
+            ),
+            "invalidation": mo.ui.text(
+                label="Paper invalidation",
+                full_width=True,
+            ),
+            "notes": mo.ui.text(
+                label="Practice notes",
+                full_width=True,
+            ),
+            "acknowledge_context": mo.ui.checkbox(
+                label=(
+                    "I acknowledge this is fixture/static context and a local "
+                    "paper record only"
+                ),
+                value=False,
+            ),
+        }
+    )
+    record_paper_intent_button = mo.ui.run_button(label="Record Paper Intent")
+    return paper_intent_form, record_paper_intent_button
+
+
+@app.cell
+def _(
+    PaperTradeLeg,
+    create_paper_trade_intent,
+    option_chain_context_flags,
+    option_chain_freshness,
+    option_chain_provider_result,
+    paper_intent_form,
+    paper_trade_click_state,
+    paper_trade_ledger_state,
+    record_paper_intent_button,
+    rule_decision,
+    set_paper_trade_click,
+    set_paper_trade_ledger,
+):
+    from datetime import datetime, timezone
+
+    paper_intent_message = ""
+    _paper_click_count = run_button_click_count(record_paper_intent_button)
+    if _paper_click_count > paper_trade_click_state():
+        set_paper_trade_click(_paper_click_count)
+        _view = option_chain_provider_result.selection_view
+        _expiration = _view.selected_expiration if _view is not None else None
+        _legs = ()
+        _entry_reference = None
+        if _expiration is not None:
+            _entry_reference = _expiration.atm_straddle.value
+            _legs = tuple(
+                PaperTradeLeg(
+                    provider_symbol=_item.contract.provider_symbol,
+                    side=_item.contract.side,
+                    expiration=_item.contract.expiration,
+                    strike=_item.contract.strike,
+                    reference_mark=_item.contract.mark,
+                )
+                for _item in _expiration.contracts
+                if _item.contract.strike == _expiration.atm_strike
+            )
+
+        _form_value = paper_intent_form.value
+        _intent = create_paper_trade_intent(
+            created_at=datetime.now(timezone.utc),
+            strategy_label=_form_value["strategy_label"] or "",
+            thesis=_form_value["thesis"] or "",
+            invalidation=_form_value["invalidation"] or "",
+            notes=_form_value["notes"] or "",
+            legs=_legs,
+            entry_reference=_entry_reference,
+            option_chain_source_label=option_chain_provider_result.source_label,
+            option_chain_freshness_status=option_chain_freshness.status,
+            option_chain_data_context=option_chain_context_flags.data_context,
+            option_chain_warning_level=option_chain_context_flags.operator_warning_level,
+            option_chain_reason_codes=option_chain_context_flags.reason_codes,
+            playbook_status_label=rule_decision.severity.value,
+            playbook_allowed_actions=tuple(
+                sorted(action.value for action in rule_decision.allowed_actions)
+            ),
+            operator_acknowledged_context=bool(_form_value["acknowledge_context"]),
+        )
+        _next_ledger, _validation = paper_trade_ledger_state().append(_intent)
+        if _validation.is_valid:
+            set_paper_trade_ledger(_next_ledger)
+            paper_intent_message = "Recorded local paper intent."
+        else:
+            paper_intent_message = (
+                "Paper intent not recorded: "
+                + ", ".join(_validation.reason_codes)
+            )
+    return (paper_intent_message,)
+
+
+@app.cell
+def _(
+    html_escape,
+    mo,
+    paper_intent_form,
+    paper_intent_message,
+    paper_trade_ledger_state,
+    record_paper_intent_button,
+):
+    _ledger = paper_trade_ledger_state()
+    _rows = []
+    for _record in _ledger.records:
+        _created = _record.created_at.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+        _rows.append(
+            "<tr>"
+            f"<td>{html_escape(_created)}</td>"
+            f"<td>{html_escape(_record.strategy_label)}</td>"
+            f"<td>{html_escape(_record.option_chain_data_context or 'unknown')}</td>"
+            f"<td>{html_escape(_record.option_chain_warning_level or 'unknown')}</td>"
+            f"<td>{len(_record.legs)}</td>"
+            "<td>paper only</td>"
+            "</tr>"
+        )
+    _ledger_html = (
+        '<table style="width:100%;border-collapse:collapse;font-size:0.86em">'
+        '<thead><tr><th align="left">Created</th>'
+        '<th align="left">Strategy</th><th align="left">Context</th>'
+        '<th align="left">Warning</th><th align="right">Legs</th>'
+        '<th align="left">Scope</th></tr></thead><tbody>'
+        + ("".join(_rows) if _rows else '<tr><td colspan="6">No paper intents recorded.</td></tr>')
+        + '</tbody></table>'
+    )
+    _message_html = (
+        f'<div class="app-muted" style="margin-top:8px">{html_escape(paper_intent_message)}</div>'
+        if paper_intent_message
+        else ""
+    )
+    mo.vstack(
+        [
+            mo.Html(
+                '<div class="app-section">'
+                '<div class="app-section__title">Paper Intent Ledger</div>'
+                '<div class="app-section__rule"></div></div>'
+                '<div class="app-card">'
+                '<div class="app-muted" style="margin-bottom:10px">'
+                'Local paper-only recordkeeping. No broker submission, no '
+                'account/order/position/fill/P&amp;L integration, no execution '
+                'affordance, and no playbook authorization changes.'
+                '</div>'
+            ),
+            paper_intent_form,
+            record_paper_intent_button,
+            mo.Html(_message_html + _ledger_html + '</div>'),
         ]
     )
     return
