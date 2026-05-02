@@ -129,6 +129,14 @@ def _():
         PREVIEW_SCENARIO_LABELS,
         build_market_data_preview_scenario,
     )
+    from spx_inventory_playbook.marimo_option_chain_toggle import (
+        FIXTURE_OPTION_CHAIN_MODE_LABEL,
+        LIVE_OPTION_CHAIN_MODE_LABEL,
+        build_marimo_option_chain_control_state,
+        build_marimo_option_chain_toggle_result,
+        load_marimo_option_chain_provider,
+        resolve_live_token_file_path,
+    )
     from spx_inventory_playbook.paper_trades import (
         PaperTradeLedger,
         PaperTradeLeg,
@@ -182,6 +190,8 @@ def _():
     )
     return (
         FixtureOptionChainProvider,
+        FIXTURE_OPTION_CHAIN_MODE_LABEL,
+        LIVE_OPTION_CHAIN_MODE_LABEL,
         Permission,
         PaperTradeLedger,
         PaperTradeLeg,
@@ -212,18 +222,34 @@ def _():
         get_structure_quick_reference,
         get_time_of_day_permission_matrix,
         html_escape,
+        build_marimo_option_chain_control_state,
+        build_marimo_option_chain_toggle_result,
+        load_marimo_option_chain_provider,
         market_data_scenario_names,
+        resolve_live_token_file_path,
         time_urgency,
         validate_inventory_state,
     )
 
 
 @app.cell
-def _(PREVIEW_SCENARIO_LABELS, PaperTradeLedger, TIME_WINDOW_LABELS, TimeWindow, mo):
+def _(
+    FIXTURE_OPTION_CHAIN_MODE_LABEL,
+    LIVE_OPTION_CHAIN_MODE_LABEL,
+    PREVIEW_SCENARIO_LABELS,
+    PaperTradeLedger,
+    TIME_WINDOW_LABELS,
+    TimeWindow,
+    mo,
+):
     positions_state, set_positions = mo.state(())
     add_click_state, set_add_click = mo.state(0)
     manage_click_state, set_manage_click = mo.state({})
     option_chain_refresh_click_state, set_option_chain_refresh_click = mo.state(0)
+    option_chain_provider_result_state, set_option_chain_provider_result = mo.state(None)
+    option_chain_last_successful_result_state, set_option_chain_last_successful_result = (
+        mo.state(None)
+    )
     paper_trade_ledger_state, set_paper_trade_ledger = mo.state(PaperTradeLedger())
     paper_trade_click_state, set_paper_trade_click = mo.state(0)
     daily_budget_input = mo.ui.number(
@@ -243,17 +269,35 @@ def _(PREVIEW_SCENARIO_LABELS, PaperTradeLedger, TIME_WINDOW_LABELS, TimeWindow,
         value="Default fail-closed",
         label="Market-data display mode",
     )
+    option_chain_mode_selector = mo.ui.dropdown(
+        options=[
+            FIXTURE_OPTION_CHAIN_MODE_LABEL,
+            LIVE_OPTION_CHAIN_MODE_LABEL,
+        ],
+        value=FIXTURE_OPTION_CHAIN_MODE_LABEL,
+        label="Option-chain source",
+    )
+    option_chain_live_confirmation_input = mo.ui.text(
+        label="Live manual confirmation phrase",
+        full_width=True,
+    )
     return (
         add_click_state,
         current_time_window_selector,
         daily_budget_input,
         market_data_mode_selector,
         manage_click_state,
+        option_chain_last_successful_result_state,
+        option_chain_live_confirmation_input,
+        option_chain_mode_selector,
+        option_chain_provider_result_state,
         option_chain_refresh_click_state,
         paper_trade_click_state,
         paper_trade_ledger_state,
         positions_state,
         set_add_click,
+        set_option_chain_last_successful_result,
+        set_option_chain_provider_result,
         set_manage_click,
         set_option_chain_refresh_click,
         set_paper_trade_click,
@@ -328,11 +372,11 @@ def _(mo):
         '<div class="app-ribbon">'
         '<strong>Live-data-safe boundaries:</strong> '
         'Live data requires approved source, timestamp, and freshness checks; '
-        'this notebook has no live mode. Greeks, IV, bid/ask, strikes, '
-        'expiries, and marks must be labeled by source. Missing or stale data '
-        'fails closed, degrades confidence, or requires manual confirmation. '
-        'Bounded decision support is allowed; automated live actions are '
-        'outside this app.'
+        'fixture mode is the default and live option-chain mode requires manual '
+        'operator activation. Greeks, IV, bid/ask, strikes, expiries, and marks '
+        'must be labeled by source. Missing or stale data fails closed, '
+        'degrades confidence, or requires manual confirmation. Bounded decision '
+        'support is allowed; automated live actions are outside this app.'
         '</div>'
     )
     return
@@ -555,39 +599,71 @@ def _(Path, mo):
         / "schwab"
         / "raw_option_chain_0dte.sanitized.json"
     )
-    option_chain_refresh_button = mo.ui.run_button(label="Reload Fixture")
+    option_chain_refresh_button = mo.ui.run_button(label="Refresh Option Chain")
     return option_chain_fixture_path, option_chain_refresh_button
 
 
 @app.cell
 def _(
-    FixtureOptionChainProvider,
-    build_option_chain_context_flags,
-    classify_option_chain_freshness,
+    build_marimo_option_chain_control_state,
+    build_marimo_option_chain_toggle_result,
+    load_marimo_option_chain_provider,
+    option_chain_last_successful_result_state,
+    option_chain_live_confirmation_input,
     option_chain_fixture_path,
+    option_chain_mode_selector,
+    option_chain_provider_result_state,
     option_chain_refresh_button,
     option_chain_refresh_click_state,
+    resolve_live_token_file_path,
+    set_option_chain_last_successful_result,
+    set_option_chain_provider_result,
     set_option_chain_refresh_click,
 ):
-    _refresh_click_count = run_button_click_count(option_chain_refresh_button)
-    if _refresh_click_count > option_chain_refresh_click_state():
-        set_option_chain_refresh_click(_refresh_click_count)
-
-    option_chain_provider_result = FixtureOptionChainProvider(
-        option_chain_fixture_path,
-        source_label="fixture: sanitized Schwab option-chain capture",
-    ).get_spx_0dte_selection()
-    option_chain_freshness = classify_option_chain_freshness(
-        option_chain_provider_result
+    option_chain_live_token_file_path = resolve_live_token_file_path()
+    option_chain_control_state = build_marimo_option_chain_control_state(
+        selected_mode=option_chain_mode_selector.value,
+        confirm_live=option_chain_live_confirmation_input.value or "",
+        live_token_file_path=option_chain_live_token_file_path,
     )
-    option_chain_context_flags = build_option_chain_context_flags(
-        option_chain_provider_result.selection_view,
-        option_chain_freshness,
+    _refresh_click_count = run_button_click_count(option_chain_refresh_button)
+    _previous_result = option_chain_provider_result_state()
+    _should_refresh = (
+        _previous_result is None
+        or _refresh_click_count > option_chain_refresh_click_state()
+    )
+
+    if _should_refresh:
+        set_option_chain_refresh_click(_refresh_click_count)
+        option_chain_toggle_result = load_marimo_option_chain_provider(
+            selected_mode=option_chain_mode_selector.value,
+            confirm_live=option_chain_live_confirmation_input.value or "",
+            fixture_path=option_chain_fixture_path,
+            live_token_file_path=option_chain_live_token_file_path,
+        )
+        option_chain_provider_result = option_chain_toggle_result.provider_result
+        set_option_chain_provider_result(option_chain_provider_result)
+        if option_chain_provider_result.status == "available":
+            set_option_chain_last_successful_result(option_chain_provider_result)
+    else:
+        option_chain_provider_result = _previous_result
+        option_chain_toggle_result = build_marimo_option_chain_toggle_result(
+            control_state=option_chain_control_state,
+            provider_result=option_chain_provider_result,
+        )
+
+    option_chain_freshness = option_chain_toggle_result.freshness
+    option_chain_context_flags = option_chain_toggle_result.context_flags
+    option_chain_last_successful_provider_result = (
+        option_chain_last_successful_result_state()
     )
     return (
+        option_chain_control_state,
         option_chain_context_flags,
         option_chain_freshness,
+        option_chain_last_successful_provider_result,
         option_chain_provider_result,
+        option_chain_toggle_result,
     )
 
 
@@ -595,8 +671,12 @@ def _(
 def _(
     html_escape,
     mo,
+    option_chain_control_state,
     option_chain_context_flags,
     option_chain_freshness,
+    option_chain_last_successful_provider_result,
+    option_chain_live_confirmation_input,
+    option_chain_mode_selector,
     option_chain_provider_result,
     option_chain_refresh_button,
 ):
@@ -617,6 +697,30 @@ def _(
             f"{html_escape(str(value))}</span>"
         )
 
+    _control = option_chain_control_state
+    _mode_kind = "allowed" if not _control.live_mode_selected else "blocked"
+    _gate_kind = (
+        "allowed" if _control.manual_confirmation_valid else "blocked"
+    )
+    _credential_kind = (
+        "allowed" if _control.credential_source_configured else "blocked"
+    )
+    _control_html = (
+        '<div class="app-grid-3" style="margin-top:10px">'
+        '<div class="app-stat"><div class="app-stat__label">Selected source</div>'
+        f'<div class="app-stat__value">{_chip(_control.selected_mode, _mode_kind)}</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'Fixture is the launch default. Live selection alone does not refresh.</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Manual live gate</div>'
+        f'<div class="app-stat__value">{_chip("accepted" if _control.manual_confirmation_valid else "required", _gate_kind)}</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'Required phrase: capture-live-option-chain-selection.</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Credential source</div>'
+        f'<div class="app-stat__value">{_chip(_control.credential_source_label, _credential_kind)}</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'Token file path is read from environment; contents are never displayed.</div></div>'
+        '</div>'
+    )
     _status_kind = "allowed" if _result.status == "available" else "blocked"
     _reason = _result.reason_code or "none"
     _loaded_at = (
@@ -634,7 +738,8 @@ def _(
         '<div class="app-stat"><div class="app-stat__label">Source</div>'
         f'<div class="app-stat__value">{html_escape(_result.source_label)}</div>'
         '<div class="app-muted" style="margin-top:6px">'
-        'Fixture data only. Not live. No broker connection.</div></div>'
+        f'{html_escape("Live Schwab market data." if _result.source_type == "live" else "Fixture data only. Not live market data.")} '
+        'No broker connection.</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Provider</div>'
         f'<div class="app-stat__value">{html_escape(_result.provider_name)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Status</div>'
@@ -647,7 +752,7 @@ def _(
         '<div class="app-stat"><div class="app-stat__label">Freshness status</div>'
         f'<div class="app-stat__value">{_chip(_freshness.status, _freshness_kind)}</div>'
         '<div class="app-muted" style="margin-top:6px">'
-        'static_fixture means display-only fixture data, not live market data.</div></div>'
+        'static_fixture means display-only fixture data; live data ages by timestamp.</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Source type</div>'
         f'<div class="app-stat__value">{html_escape(_freshness.source_type)}</div></div>'
         '<div class="app-stat"><div class="app-stat__label">Loaded at</div>'
@@ -688,24 +793,63 @@ def _(
         + _reason_items
         + '</ul></div>'
     )
+    _last_success = option_chain_last_successful_provider_result
+    _last_success_html = ""
+    if (
+        _last_success is not None
+        and _last_success is not _result
+        and _result.status != "available"
+    ):
+        _last_loaded = (
+            _last_success.loaded_at.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+            if _last_success.loaded_at is not None
+            else "unavailable"
+        )
+        _last_success_html = (
+            '<div style="margin-top:10px"><div class="app-stat__label">'
+            'Last successful result retained</div>'
+            '<div class="app-muted">'
+            f'{html_escape(_last_success.source_type)} &middot; '
+            f'{html_escape(_last_success.source_label)} &middot; '
+            f'{html_escape(_last_loaded)}</div></div>'
+        )
+    _panel_title = "Option Chain Fixture View"
+    if _result.source_type == "live" and _result.status == "available":
+        _panel_title = "Option Chain Live Schwab View"
+    elif _control.live_mode_selected and _result.status != "available":
+        _panel_title = "Option Chain Failed Live Request"
+    _panel_note = (
+        'Read-only SPX option-chain display. Fixture mode is default; live '
+        'Schwab market data requires source selection, exact manual phrase, '
+        'configured token-file path, and manual refresh. The fixture path uses '
+        'app-owned sanitized data. no automatic refresh, no orders, and no '
+        'trading authorization changes.'
+    )
+    _control_widgets = mo.vstack(
+        [
+            option_chain_mode_selector,
+            option_chain_live_confirmation_input,
+            option_chain_refresh_button,
+        ]
+    )
 
     if _result.status != "available" or _result.selection_view is None:
         mo.vstack(
             [
-                option_chain_refresh_button,
+                _control_widgets,
                 mo.Html(
                     '<div class="app-section">'
-                    '<div class="app-section__title">Option Chain Fixture View</div>'
+                    f'<div class="app-section__title">{html_escape(_panel_title)}</div>'
                     '<div class="app-section__rule"></div></div>'
                     '<div class="app-card">'
                     '<div class="app-muted" style="margin-bottom:10px">'
-                    'Read-only fixture-backed option-chain panel. Manual reload '
-                    'only; no live refresh, no orders, and no trading '
-                    'authorization changes.'
+                    f'{html_escape(_panel_note)}'
                     '</div>'
+                    + _control_html
                     + _source_html
                     + _freshness_html
                     + _context_html
+                    + _last_success_html
                     + '<div style="margin-top:10px">'
                     + _chip("option chain unavailable", "blocked")
                     + '</div></div>'
@@ -791,18 +935,16 @@ def _(
 
         mo.vstack(
             [
-                option_chain_refresh_button,
+                _control_widgets,
                 mo.Html(
                     '<div class="app-section">'
-                    '<div class="app-section__title">Option Chain Fixture View</div>'
+                    f'<div class="app-section__title">{html_escape(_panel_title)}</div>'
                     '<div class="app-section__rule"></div></div>'
                     '<div class="app-card">'
                     '<div class="app-muted" style="margin-bottom:10px">'
-                    'Read-only SPX option-chain display from an app-owned sanitized '
-                    'fixture. Not live market data, not broker data, manual reload '
-                    'only, no automatic refresh, no orders, and no trading '
-                    'authorization changes.'
+                    f'{html_escape(_panel_note)}'
                     '</div>'
+                    + _control_html
                     + _source_html
                     + _freshness_html
                     + _context_html
@@ -1110,6 +1252,7 @@ def _(
             legs=_legs,
             entry_reference=_entry_reference,
             option_chain_source_label=option_chain_provider_result.source_label,
+            option_chain_source_type=option_chain_provider_result.source_type,
             option_chain_freshness_status=option_chain_freshness.status,
             option_chain_data_context=option_chain_context_flags.data_context,
             option_chain_warning_level=option_chain_context_flags.operator_warning_level,
@@ -1149,6 +1292,7 @@ def _(
             "<tr>"
             f"<td>{html_escape(_created)}</td>"
             f"<td>{html_escape(_record.strategy_label)}</td>"
+            f"<td>{html_escape(_record.option_chain_source_type or 'unknown')}</td>"
             f"<td>{html_escape(_record.option_chain_data_context or 'unknown')}</td>"
             f"<td>{html_escape(_record.option_chain_warning_level or 'unknown')}</td>"
             f"<td>{len(_record.legs)}</td>"
@@ -1158,10 +1302,11 @@ def _(
     _ledger_html = (
         '<table style="width:100%;border-collapse:collapse;font-size:0.86em">'
         '<thead><tr><th align="left">Created</th>'
-        '<th align="left">Strategy</th><th align="left">Context</th>'
+        '<th align="left">Strategy</th><th align="left">Source</th>'
+        '<th align="left">Context</th>'
         '<th align="left">Warning</th><th align="right">Legs</th>'
         '<th align="left">Scope</th></tr></thead><tbody>'
-        + ("".join(_rows) if _rows else '<tr><td colspan="6">No paper intents recorded.</td></tr>')
+        + ("".join(_rows) if _rows else '<tr><td colspan="7">No paper intents recorded.</td></tr>')
         + '</tbody></table>'
     )
     _message_html = (

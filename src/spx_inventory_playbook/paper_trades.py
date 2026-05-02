@@ -29,6 +29,7 @@ class PaperTradeIntent:
     legs: tuple[PaperTradeLeg, ...] = ()
     entry_reference: float | None = None
     option_chain_source_label: str | None = None
+    option_chain_source_type: str | None = None
     option_chain_freshness_status: str | None = None
     option_chain_data_context: str | None = None
     option_chain_warning_level: str | None = None
@@ -102,6 +103,7 @@ def create_paper_trade_intent(
     legs: tuple[PaperTradeLeg, ...] = (),
     entry_reference: float | None = None,
     option_chain_source_label: str | None = None,
+    option_chain_source_type: str | None = None,
     option_chain_freshness_status: str | None = None,
     option_chain_data_context: str | None = None,
     option_chain_warning_level: str | None = None,
@@ -119,6 +121,7 @@ def create_paper_trade_intent(
         legs=tuple(legs),
         entry_reference=entry_reference,
         option_chain_source_label=option_chain_source_label,
+        option_chain_source_type=option_chain_source_type,
         option_chain_freshness_status=option_chain_freshness_status,
         option_chain_data_context=option_chain_data_context,
         option_chain_warning_level=option_chain_warning_level,

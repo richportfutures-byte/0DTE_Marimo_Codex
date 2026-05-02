@@ -83,9 +83,14 @@ def test_notebook_source_includes_read_only_option_chain_fixture_panel() -> None
     source = NOTEBOOK_PATH.read_text(encoding="utf-8")
 
     assert "FixtureOptionChainProvider" in source
-    assert "build_option_chain_context_flags" in source
+    assert "load_marimo_option_chain_provider" in source
     assert "Option Chain Fixture View" in source
-    assert "Reload Fixture" in source
+    assert "Option Chain Live Schwab View" in source
+    assert "Option Chain Failed Live Request" in source
+    assert "Refresh Option Chain" in source
+    assert "FIXTURE_OPTION_CHAIN_MODE_LABEL" in source
+    assert "LIVE_OPTION_CHAIN_MODE_LABEL" in source
+    assert "capture-live-option-chain-selection" in source
     assert "static_fixture" in source
     assert "Freshness status" in source
     assert "Data context" in source
@@ -96,6 +101,8 @@ def test_notebook_source_includes_read_only_option_chain_fixture_panel() -> None
     assert "app-owned sanitized" in source
     assert "fixture" in source
     assert "Not live market data" in source
+    assert "Token file path is read from environment" in source
+    assert "Last successful result retained" in source
     assert "no automatic refresh" in source
     assert "orders" in source
     assert "trading" in source

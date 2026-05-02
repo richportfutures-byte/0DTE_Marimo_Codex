@@ -70,6 +70,7 @@ def test_intent_can_include_option_chain_context_and_leg_metadata() -> None:
         legs=(leg,),
         entry_reference=43.25,
         option_chain_source_label="fixture: sanitized Schwab option-chain capture",
+        option_chain_source_type="fixture",
         option_chain_freshness_status="static_fixture",
         option_chain_data_context="static_fixture",
         option_chain_warning_level="caution",
@@ -81,6 +82,7 @@ def test_intent_can_include_option_chain_context_and_leg_metadata() -> None:
     assert intent.legs == (leg,)
     assert intent.entry_reference == 43.25
     assert intent.option_chain_source_label == "fixture: sanitized Schwab option-chain capture"
+    assert intent.option_chain_source_type == "fixture"
     assert intent.option_chain_freshness_status == "static_fixture"
     assert intent.option_chain_data_context == "static_fixture"
     assert intent.option_chain_warning_level == "caution"
@@ -132,6 +134,40 @@ def test_static_or_stale_context_requires_operator_acknowledgement() -> None:
     assert validate_paper_trade_intent(stale_intent).reason_codes == (
         "option_chain_context_acknowledgement_required",
     )
+
+
+def test_invalid_or_unavailable_live_context_requires_operator_acknowledgement() -> None:
+    invalid_intent = valid_intent(
+        option_chain_source_type="live",
+        option_chain_data_context="invalid",
+        operator_acknowledged_context=False,
+    )
+    unavailable_intent = valid_intent(
+        option_chain_source_type="live",
+        option_chain_data_context="unavailable",
+        operator_acknowledged_context=False,
+    )
+
+    assert validate_paper_trade_intent(invalid_intent).reason_codes == (
+        "option_chain_context_acknowledgement_required",
+    )
+    assert validate_paper_trade_intent(unavailable_intent).reason_codes == (
+        "option_chain_context_acknowledgement_required",
+    )
+
+
+def test_paper_intent_records_live_option_chain_source_type() -> None:
+    intent = valid_intent(
+        option_chain_source_label="manual_live_schwab_option_chain",
+        option_chain_source_type="live",
+        option_chain_freshness_status="fresh",
+        option_chain_data_context="fresh_live",
+        operator_acknowledged_context=False,
+    )
+
+    assert intent.option_chain_source_label == "manual_live_schwab_option_chain"
+    assert intent.option_chain_source_type == "live"
+    assert validate_paper_trade_intent(intent).is_valid is True
 
 
 def test_paper_module_does_not_import_broker_or_authorization_modules() -> None:
