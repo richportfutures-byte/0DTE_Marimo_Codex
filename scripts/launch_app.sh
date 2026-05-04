@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"
+
 HOST="${SPX_WORKSTATION_HOST:-127.0.0.1}"
 PORT="${SPX_WORKSTATION_PORT:-27182}"
 

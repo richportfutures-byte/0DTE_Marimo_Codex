@@ -128,3 +128,12 @@ def test_notebook_source_includes_local_only_paper_intent_ledger() -> None:
     assert "No broker submission" in source
     assert "no execution" in source
     assert "no playbook authorization changes" in source
+
+
+def test_notebook_source_keeps_darkmode_titles_and_sidebar_usable() -> None:
+    source = NOTEBOOK_PATH.read_text(encoding="utf-8")
+
+    assert "background:#0b1220;color:#e2e8f0" in source
+    assert "text-transform:uppercase;color:#cbd5e1" in source
+    assert ".app-sidebar{display:block!important" in source
+    assert ".app-sidebar + div{display:none!important}" in source

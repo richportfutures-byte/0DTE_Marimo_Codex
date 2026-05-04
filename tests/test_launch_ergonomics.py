@@ -42,6 +42,7 @@ def test_launch_script_defaults_to_local_fixture_safe_marimo_command() -> None:
 
     assert "127.0.0.1" in text
     assert "27182" in text
+    assert 'export PYTHONPATH="${ROOT_DIR}/src${PYTHONPATH:+:${PYTHONPATH}}"' in text
     assert "uv run marimo run notebooks/spx_inventory_app.py" in text
     assert '--host "$HOST"' in text
     assert '--port "$PORT"' in text

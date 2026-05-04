@@ -53,9 +53,14 @@ def _(mo):
         .app-section{margin:18px 0 6px;padding:0 4px;
           display:flex;align-items:center;gap:10px}
         .app-section__title{font-size:0.78em;font-weight:700;letter-spacing:0.1em;
-          text-transform:uppercase;color:#94a3b8}
+          text-transform:uppercase;color:#cbd5e1}
         .app-section__rule{flex:1;height:1px;
           background:#334155}
+        @media (max-width:1023px){
+          .app-sidebar{display:block!important;position:relative!important;
+            flex:0 0 auto}
+          .app-sidebar + div{display:none!important}
+        }
         .app-card{background:#1e293b;color:#e2e8f0;
           border:1px solid #334155;
           border-radius:10px;padding:14px;margin:6px 0}
