@@ -12,7 +12,7 @@
 - Founder-ready acceptance: `docs/FOUNDER_READY_ACCEPTANCE.md`
 - Test count is intentionally not pinned here; run `uv run pytest`, or `uv run pytest --collect-only` if a count is needed.
 - The app is a marimo-based reference and operating framework for 0DTE SPX/SPXW inventory work.
-- Roadmap status: R11 final founder-ready acceptance complete.
+- Roadmap status: R12 controlled Marimo live runtime wiring complete.
 
 ## Module Responsibilities
 
@@ -24,6 +24,12 @@
 - `scripts/launch_app.sh`: R10 fixture-default local Marimo launch wrapper.
 - `scripts/verify.sh`: R10 founder-ready verification sequence wrapper.
 - `scripts/export_daily_bundle.sh`: R10 fixture/default daily export wrapper.
+- `src/spx_inventory_playbook/marimo_option_chain_toggle.py`: controlled
+  notebook option-chain source selection, live-gate evaluation, provider result
+  classification, and last-successful live-context retention rule.
+- `src/spx_inventory_playbook/adapters/live_schwab_option_chain_provider.py`:
+  manually gated Schwab `$SPX` option-chain market-data harness. It is
+  market-data only and returns sanitized provider metadata.
 - `src/spx_inventory_playbook/fixtures.py`: abstract fixture states for tests and UI smoke paths.
 - `src/spx_inventory_playbook/calculators.py`: pure hedge and cost/friction calculators.
 - `src/spx_inventory_playbook/positions.py`: position tracking, lifecycle helpers, and session summary math.
@@ -47,6 +53,26 @@ R9 adds `tests/test_app_level_regressions.py`, a fixture-only regression layer o
 - Token-like and credential-like strings are redacted from app/export artifacts using abstract placeholder values only.
 
 Default verification remains non-live, credential-free, and fixture-safe.
+
+## R12 Controlled Live Runtime Wiring
+
+R12 connects the already-approved live Schwab option-chain provider boundary to
+the notebook's option-chain panel under explicit operator opt-in. This is
+display-only market-data wiring, not broker integration, order routing,
+execution, account access, positions import, fill import, or P/L import.
+
+The notebook defaults to `Fixture/static option chain`. A live request can occur
+only when the operator selects `Live Schwab option chain`, enters the exact
+confirmation phrase `capture-live-option-chain-selection`, launches with a local
+token-file source, and clicks **Refresh Option Chain**. The notebook runtime
+uses only the repo-native token environment variable
+`SPX_OPTION_CHAIN_LIVE_TOKEN_FILE`.
+
+The refresh path stores the current provider result in notebook state and
+classifies it as `fixture`, `live_fresh`, `live_stale`, `live_unavailable`, or
+`live_parse_error`. Live failures remain live failures and never fall back to
+fixture data. Last-successful retained context is limited to explicitly
+fresh/aging live option-chain results.
 
 ## Founder-Ready Acceptance
 

@@ -2,17 +2,17 @@
 
 ## Current Position
 
-- Current roadmap position: R11 complete
-- Last completed step: R11 Final Founder-Ready Acceptance
-- Current step: roadmap complete
-- Next planned step: none; preserve accepted local-first personal workstation boundaries unless explicitly directed
+- Current roadmap position: R12 complete
+- Last completed step: R12 Controlled Marimo Live Runtime Wiring
+- Current step: R12 complete
+- Next planned step: preserve controlled live-runtime boundaries unless explicitly directed
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Roadmap R0 through R11 is complete; do not broaden scope without an explicit new prompt.
-- Do not call live APIs.
+- Roadmap R0 through R12 is complete; do not broaden scope without an explicit new prompt.
+- Do not call live APIs during default launch, default verification, tests, or documentation work.
 - Do not read or print token files.
 - Do not introduce commercial SaaS requirements.
 - Do not add order routing, broker submission, or automated execution concepts.
@@ -23,9 +23,9 @@
 ## How To Resume If The Chat Migrates
 
 1. Open this file first.
-2. Confirm `docs/founder_ready_roadmap.md` exists and matches the roadmap through R11.
+2. Confirm `docs/founder_ready_roadmap.md` exists and matches the roadmap through R12.
 3. Check `git status --short` before making changes.
-4. Treat R11 as complete unless the user explicitly redirects.
+4. Treat R12 as complete unless the user explicitly redirects.
 5. For any future change prompt, perform a clean-tree and fixture-safe baseline verification before implementation.
 6. Keep all routine verification credential-free and fixture-safe.
 7. If live-data work is later requested, confirm boundaries first and never read or print credential material.
@@ -825,3 +825,77 @@ The final acceptance artifact documents the supported local launch, verification
   - Result: script exited 0 after running `uv run pytest` with 560 passed, `uv run ruff check .` with all checks passed, and `uv run python notebooks/spx_inventory_app.py` successfully. The first sandboxed invocation failed before running checks because `uv` could not open its cache under `/Users/stu/.cache/uv`; the approved rerun completed successfully.
 
 R11 is complete after commit. Migration is required before any further roadmap prompt because R0 through R11 are complete.
+
+## R12 Controlled Marimo Live Runtime Wiring - Results
+
+- Date/time in local shell: Mon May 4 15:03:54 EDT 2026
+- Current roadmap position: R12 complete
+- Next step: preserve controlled live-runtime boundaries unless explicitly directed
+
+### Audit Summary
+
+- The notebook already calls `load_marimo_option_chain_provider` on initial
+  option-chain load and on manual **Refresh Option Chain** clicks.
+- `resolve_live_token_file_path` resolves only
+  `SPX_OPTION_CHAIN_LIVE_TOKEN_FILE` from the process environment. It does not
+  read token contents or display paths.
+- The exact live confirmation phrase is
+  `capture-live-option-chain-selection`.
+- `live_schwab_option_chain_provider.py` is not a stub: after the manual gate
+  and token read inside the explicit live path, it calls
+  `https://api.schwabapi.com/marketdata/v1/chains` for `$SPX` option-chain
+  market data.
+- `scripts/capture_live_schwab_option_chain_selection.py` is the separate
+  manual live rehearsal command for one sanitized SPX option-chain fetch.
+- The notebook requires a manual refresh button click for live calls. Dropdown
+  or phrase changes alone update control state but do not refresh provider data.
+- Stale documentation existed in `docs/LIVE_MARKET_REHEARSAL_READINESS.md`;
+  it said Marimo was fixture-only even though a controlled live toggle now
+  exists.
+
+### Files Changed
+
+- `notebooks/spx_inventory_app.py`
+- `src/spx_inventory_playbook/marimo_option_chain_toggle.py`
+- `tests/test_marimo_option_chain_toggle.py`
+- `tests/test_market_data_provider_unification.py`
+- `tests/test_founder_ready_acceptance.py`
+- `docs/founder_ready_roadmap.md`
+- `docs/HANDOFF.md`
+- `docs/OPERATOR_RUNBOOK.md`
+- `docs/LIVE_MARKET_REHEARSAL_READINESS.md`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+R12 keeps the provider activation path intact and tightens the runtime retention
+rule. The notebook still defaults to fixture mode. A live request is possible
+only after explicit live source selection, exact manual confirmation phrase,
+configured local token-file source, and a manual refresh.
+
+The code now exposes
+`should_preserve_last_successful_option_chain_result`, and the notebook uses it
+so only explicitly fresh/aging live option-chain results are retained as
+last-successful context. Fixture results, stale live results, unavailable live
+results, and parse-error live results are not promoted into retained live
+context.
+
+The implementation does not add broker integration, account access, order
+routing, broker submission, positions import, fill import, P/L import,
+automatic refresh, or production-grade live-data claims.
+
+### Verification Results
+
+- PASS: `uv run pytest -q tests/test_marimo_option_chain_toggle.py tests/test_market_data_provider_unification.py tests/test_option_chain_provider.py tests/test_option_chain_freshness.py`
+  - Result: 37 passed.
+- PASS: `uv run pytest -q tests/test_notebook_smoke.py`
+  - Result: 10 passed.
+- PASS: `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+- PASS: `uv run pytest`
+  - Result: 566 passed.
+
+R12 is complete after commit. Future work should treat live runtime behavior as
+controlled, display-only, operator-gated, fail-closed market-data wiring.

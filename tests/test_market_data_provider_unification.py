@@ -28,6 +28,7 @@ from spx_inventory_playbook.marimo_option_chain_toggle import (
     LIVE_OPTION_CHAIN_MODE_LABEL,
     build_marimo_option_chain_toggle_result,
     load_marimo_option_chain_provider,
+    should_preserve_last_successful_option_chain_result,
 )
 
 
@@ -167,6 +168,24 @@ def test_stale_live_result_maps_to_live_stale() -> None:
         classify_market_data_provider_state(provider_result, freshness)
         is MarketDataProviderState.LIVE_STALE
     )
+
+
+def test_stale_live_result_is_not_retained_as_last_successful_context() -> None:
+    provider_result = live_provider_result(loaded_at=NOW - timedelta(seconds=90))
+    toggle_result = build_marimo_option_chain_toggle_result(
+        control_state=load_marimo_option_chain_provider(
+            selected_mode=FIXTURE_OPTION_CHAIN_MODE_LABEL,
+            confirm_live="",
+            fixture_path=FIXTURE_PATH,
+            live_token_file_path=None,
+            now=NOW,
+        ).control_state,
+        provider_result=provider_result,
+        now=NOW,
+    )
+
+    assert toggle_result.provider_state is MarketDataProviderState.LIVE_STALE
+    assert should_preserve_last_successful_option_chain_result(toggle_result) is False
 
 
 def test_fresh_live_result_maps_to_live_fresh() -> None:

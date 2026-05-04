@@ -169,6 +169,7 @@ def _():
         build_marimo_option_chain_toggle_result,
         load_marimo_option_chain_provider,
         resolve_live_token_file_path,
+        should_preserve_last_successful_option_chain_result,
     )
     from spx_inventory_playbook.paper_trades import (
         PaperTradeLedger,
@@ -277,6 +278,7 @@ def _():
         normalize_operator_input_state,
         operator_input_from_inventory_state,
         resolve_live_token_file_path,
+        should_preserve_last_successful_option_chain_result,
         time_urgency,
         validate_inventory_state,
     )
@@ -741,6 +743,7 @@ def _(
     set_option_chain_last_successful_result,
     set_option_chain_provider_result,
     set_option_chain_refresh_click,
+    should_preserve_last_successful_option_chain_result,
 ):
     option_chain_live_token_file_path = resolve_live_token_file_path()
     option_chain_control_state = build_marimo_option_chain_control_state(
@@ -765,7 +768,9 @@ def _(
         )
         option_chain_provider_result = option_chain_toggle_result.provider_result
         set_option_chain_provider_result(option_chain_provider_result)
-        if option_chain_provider_result.status == "available":
+        if should_preserve_last_successful_option_chain_result(
+            option_chain_toggle_result
+        ):
             set_option_chain_last_successful_result(option_chain_provider_result)
     else:
         option_chain_provider_result = _previous_result

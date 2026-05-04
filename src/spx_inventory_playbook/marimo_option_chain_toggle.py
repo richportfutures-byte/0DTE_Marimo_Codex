@@ -42,7 +42,6 @@ from spx_inventory_playbook.adapters.option_chain_provider import (
 FIXTURE_OPTION_CHAIN_MODE_LABEL = "Fixture/static option chain"
 LIVE_OPTION_CHAIN_MODE_LABEL = "Live Schwab option chain"
 LIVE_TOKEN_FILE_ENV_VAR = "SPX_OPTION_CHAIN_LIVE_TOKEN_FILE"
-FALLBACK_LIVE_TOKEN_FILE_ENV_VAR = "SCHWAB_TOKEN_PATH"
 
 JsonObject = dict[str, object]
 
@@ -112,8 +111,6 @@ def resolve_live_token_file_path(
 
     env = os.environ if environ is None else environ
     value = (env.get(LIVE_TOKEN_FILE_ENV_VAR) or "").strip()
-    if not value:
-        value = (env.get(FALLBACK_LIVE_TOKEN_FILE_ENV_VAR) or "").strip()
     if not value:
         return None
     return Path(value).expanduser()
@@ -229,6 +226,17 @@ def build_marimo_option_chain_toggle_result(
     )
 
 
+def should_preserve_last_successful_option_chain_result(
+    result: MarimoOptionChainToggleResult,
+) -> bool:
+    """Return whether a notebook refresh result is safe to retain as live context."""
+
+    return (
+        result.provider_result.status == "available"
+        and result.provider_state is MarketDataProviderState.LIVE_FRESH
+    )
+
+
 def _toggle_result(
     control_state: MarimoOptionChainControlState,
     provider_result: OptionChainProviderResult,
@@ -260,7 +268,6 @@ def _blocked_live_provider_result(
 
 
 __all__ = [
-    "FALLBACK_LIVE_TOKEN_FILE_ENV_VAR",
     "FIXTURE_OPTION_CHAIN_MODE_LABEL",
     "LIVE_OPTION_CHAIN_MODE_LABEL",
     "LIVE_TOKEN_FILE_ENV_VAR",
@@ -270,4 +277,5 @@ __all__ = [
     "build_marimo_option_chain_toggle_result",
     "load_marimo_option_chain_provider",
     "resolve_live_token_file_path",
+    "should_preserve_last_successful_option_chain_result",
 ]

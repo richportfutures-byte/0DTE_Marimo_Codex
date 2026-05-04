@@ -6,8 +6,9 @@ Schwab market-data harness. The current state is:
 - Fixture rehearsal readiness is complete for local paper practice.
 - The manual live Schwab option-chain harness has been proven once after a token
   refresh.
-- Marimo still uses fixture mode only.
-- The next step is controlled Marimo live toggle design, not broker integration.
+- Marimo now has controlled live runtime wiring for display-only option-chain
+  cells under explicit operator opt-in.
+- The current step is not broker integration and not execution.
 
 All live harness work is market-data-only. It does not submit broker orders and
 does not connect to account, order, position, fill, or P&L APIs. Option-chain
@@ -37,8 +38,10 @@ data remains display-only context and must not change trade authorization.
 
 Purpose: run one operator-initiated Schwab `$SPX` option-chain market-data
 request, parse it through the existing selection path, and print sanitized
-summary diagnostics only. This harness is intentionally outside Marimo and does
-not enable live data in the notebook.
+summary diagnostics only. This harness remains the separate manual live
+rehearsal command; the notebook uses the same approved provider boundary only
+after explicit live source selection, the exact confirmation phrase, a
+configured token-file source, and a manual refresh.
 
 Safe command shape with a local token JSON file:
 
@@ -61,6 +64,18 @@ The required manual gate phrase is:
 ```text
 capture-live-option-chain-selection
 ```
+
+For notebook runtime wiring, launch with the repo-native token-file source
+configured outside Marimo:
+
+```bash
+SPX_OPTION_CHAIN_LIVE_TOKEN_FILE=<PATH_TO_LOCAL_SCHWAB_TOKEN_JSON> scripts/launch_app.sh
+```
+
+`SCHWAB_TOKEN_PATH` is not used by the notebook runtime path. In plain text:
+SCHWAB_TOKEN_PATH is not used by the notebook runtime path.
+
+The notebook does not display the token path or token contents.
 
 Expected sanitized success fields from the proven manual run:
 
@@ -88,9 +103,10 @@ secrets, callback URL values, or token contents.
 
 ## Boundaries
 
-- Marimo remains fixture-only until a controlled live toggle is designed,
-  reviewed, and tested.
-- This documentation does not add Marimo live integration.
+- Marimo live option-chain wiring is controlled, display-only, operator-gated,
+  and fail-closed.
+- Fixture mode remains the default for launch, tests, verification, and fixture
+  rehearsal.
 - This documentation does not add timed or automatic refresh loops.
 - This documentation does not add Schwab account, order, position, fill, or P&L
   integration.

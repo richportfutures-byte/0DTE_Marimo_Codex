@@ -468,3 +468,72 @@ Verify the app is ready for disciplined personal operational use as a local-firs
 ### Resume note for future LLM orchestration
 
 At R11, verify evidence instead of adding scope. Founder-ready means personally operable, restart-safe, audited, and bounded; it does not mean SaaS-ready or execution-enabled.
+
+## R12 - Controlled Marimo Live Runtime Wiring
+
+### Status
+
+Complete. R12 documents and tightens the controlled runtime bridge that connects
+the already-approved Schwab live option-chain provider boundary to the Marimo
+notebook under explicit operator opt-in.
+
+This is not broker integration and not execution. It does not add order routing,
+account access, positions import, fill import, or P/L import.
+
+### Goal
+
+Make the roadmap and current code reality explicit, then preserve the smallest
+safe live-runtime path for display-only SPX option-chain cells in the notebook.
+
+### Deliverables
+
+- Controlled Marimo runtime wiring from the option-chain source controls to the
+  approved live Schwab option-chain provider boundary.
+- Documentation that distinguishes fixture/default operation, controlled live
+  runtime wiring, and the separate manual live rehearsal command.
+- Deterministic tests for fixture default behavior, live gate failures, mocked
+  live success, stale/unavailable/parse-error classification, secret-safe
+  summaries, and roadmap/runbook accuracy.
+
+### Non-goals
+
+- No broker integration.
+- No order execution, order routing, broker submission, account actions,
+  positions import, fill import, or P/L import.
+- No automatic refresh loops.
+- No production-grade live-data claim.
+- No live APIs, token-file reads, or credential requirements in default launch
+  or default verification.
+- R12 does not make default launch or default verification live.
+
+### Acceptance criteria
+
+- Fixture mode remains the default.
+- Live option-chain data requires explicit live source selection, the exact
+  manual confirmation phrase, a configured local token source initialized
+  outside the notebook, and a manual refresh.
+- The notebook uses only the repo-native `SPX_OPTION_CHAIN_LIVE_TOKEN_FILE`
+  token-file source.
+- Live data carries source, timestamp, freshness status, and fixture/live
+  classification.
+- Live failure remains live failure and never silently falls back to fixture
+  data.
+- Last successful retained context is limited to explicitly fresh/aging live
+  option-chain results.
+- Deterministic tests pass without credentials or network access.
+- Separate manual live rehearsal remains available through
+  `scripts/capture_live_schwab_option_chain_selection.py`.
+
+### Dependencies
+
+- R5 market-data provider unification.
+- R9 app-level regression coverage.
+- R10 launch ergonomics and runbooks.
+- R11 final founder-ready acceptance boundaries.
+
+### Resume note for future LLM orchestration
+
+Treat R12 as controlled live runtime wiring only. Keep default commands
+fixture-safe and credential-free. A real Schwab request belongs only in an
+explicit operator-run live rehearsal or manually refreshed notebook session with
+the required local token source and confirmation phrase.

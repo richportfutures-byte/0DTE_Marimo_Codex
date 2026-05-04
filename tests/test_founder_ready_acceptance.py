@@ -135,12 +135,31 @@ def test_docs_preserve_no_broker_order_routing_or_automation_boundaries() -> Non
     )
 
 
-def test_roadmap_and_orchestration_mark_r11_final_acceptance_complete() -> None:
+def test_roadmap_and_orchestration_mark_r12_live_runtime_wiring_complete() -> None:
     roadmap = normalized("docs/founder_ready_roadmap.md")
     orchestration = normalized("docs/orchestration_state.md")
 
     assert "## r11 final founder-ready acceptance" in roadmap
+    assert "## r12 - controlled marimo live runtime wiring" in roadmap
     assert "### status\n\ncomplete." in roadmap
-    assert "current roadmap position: r11 complete" in orchestration
-    assert "last completed step: r11 final founder-ready acceptance" in orchestration
-    assert "roadmap complete" in orchestration
+    assert "not broker integration and not execution" in roadmap
+    assert "controlled live runtime wiring" in roadmap
+    assert "spx_option_chain_live_token_file" in roadmap
+    assert "default launch or default verification" in roadmap
+    assert "current roadmap position: r12 complete" in orchestration
+    assert (
+        "last completed step: r12 controlled marimo live runtime wiring"
+        in orchestration
+    )
+
+
+def test_live_rehearsal_docs_match_current_controlled_notebook_toggle() -> None:
+    text = normalized("docs/LIVE_MARKET_REHEARSAL_READINESS.md")
+
+    assert "marimo now has controlled live runtime wiring" in text
+    assert "marimo still uses fixture mode only" not in text
+    assert "marimo remains fixture-only" not in text
+    assert "spx_option_chain_live_token_file" in text
+    assert "schwab_token_path is not used by the notebook runtime path" in text
+    assert "capture-live-option-chain-selection" in text
+    assert "notebook does not display the token path or token contents" in text

@@ -11,13 +11,13 @@ from spx_inventory_playbook.adapters.live_schwab_option_chain_provider import (
     MANUAL_LIVE_CONFIRM_PHRASE,
 )
 from spx_inventory_playbook.marimo_option_chain_toggle import (
-    FALLBACK_LIVE_TOKEN_FILE_ENV_VAR,
     FIXTURE_OPTION_CHAIN_MODE_LABEL,
     LIVE_OPTION_CHAIN_MODE_LABEL,
     LIVE_TOKEN_FILE_ENV_VAR,
     build_marimo_option_chain_control_state,
     load_marimo_option_chain_provider,
     resolve_live_token_file_path,
+    should_preserve_last_successful_option_chain_result,
 )
 
 
@@ -147,6 +147,23 @@ def test_mocked_live_success_renders_live_schwab_provider_not_fixture(
     assert result.freshness.status == "fresh"
     assert result.provider_state.value == "live_fresh"
     assert result.context_flags.data_context == "fresh_live"
+    assert should_preserve_last_successful_option_chain_result(result) is True
+
+
+def test_fixture_success_is_not_retained_as_last_successful_live_context(
+    tmp_path: Path,
+) -> None:
+    result = load_marimo_option_chain_provider(
+        selected_mode=FIXTURE_OPTION_CHAIN_MODE_LABEL,
+        confirm_live=MANUAL_LIVE_CONFIRM_PHRASE,
+        fixture_path=FIXTURE_PATH,
+        live_token_file_path=write_token_file(tmp_path),
+        now=NOW,
+    )
+
+    assert result.provider_result.source_type == "fixture"
+    assert result.provider_state.value == "fixture"
+    assert should_preserve_last_successful_option_chain_result(result) is False
 
 
 def test_mocked_live_failure_has_safe_reason_without_payload_token_or_header(
@@ -192,8 +209,8 @@ def test_mocked_live_failure_has_safe_reason_without_payload_token_or_header(
 
 def test_token_file_path_resolution_uses_env_without_exposing_contents() -> None:
     path = resolve_live_token_file_path({LIVE_TOKEN_FILE_ENV_VAR: "/tmp/token.json"})
-    fallback = resolve_live_token_file_path(
-        {FALLBACK_LIVE_TOKEN_FILE_ENV_VAR: "/tmp/fallback-token.json"}
+    fallback_ignored = resolve_live_token_file_path(
+        {"SCHWAB_TOKEN_PATH": "/tmp/fallback-token.json"}
     )
     missing = resolve_live_token_file_path({})
     control = build_marimo_option_chain_control_state(
@@ -203,7 +220,7 @@ def test_token_file_path_resolution_uses_env_without_exposing_contents() -> None
     )
 
     assert path == Path("/tmp/token.json")
-    assert fallback == Path("/tmp/fallback-token.json")
+    assert fallback_ignored is None
     assert missing is None
     assert "/tmp/token.json" not in repr(control)
     assert control.credential_source_label == "local token file configured"
@@ -221,6 +238,7 @@ def test_notebook_source_includes_controlled_live_toggle_labels() -> None:
     assert "Token file path is read from environment" in source
     assert "Last successful result retained" in source
     assert "Provider state" in source
+    assert "should_preserve_last_successful_option_chain_result" in source
 
 
 def test_live_toggle_code_does_not_import_playbook_authorization_modules() -> None:

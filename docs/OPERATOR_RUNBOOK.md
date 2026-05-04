@@ -66,7 +66,23 @@ Fixture mode is the safe default for launch, verification, tests, and example ex
 
 ## Live-Data Gate
 
-Live option-chain data remains manually gated in the notebook. Live mode requires explicit operator selection, the exact confirmation phrase already enforced by the provider boundary, and a configured local credential source. The default launch and verification commands do not activate live mode.
+Live option-chain data is controlled runtime wiring in the notebook, not broker integration or execution. Live mode requires explicit operator selection, the exact confirmation phrase enforced by the provider boundary, a configured local credential source initialized outside the notebook, and a manual **Refresh Option Chain** click. Dropdown changes alone do not call the live provider.
+
+The notebook expects the repo-native token-file environment variable:
+
+```bash
+SPX_OPTION_CHAIN_LIVE_TOKEN_FILE=/path/to/local/token.json scripts/launch_app.sh
+```
+
+`SCHWAB_TOKEN_PATH` is not used by the notebook runtime path.
+
+Inside the notebook:
+
+1. Set **Option-chain source** to `Live Schwab option chain`.
+2. Enter the exact phrase `capture-live-option-chain-selection`.
+3. Click **Refresh Option Chain**.
+
+Default launch and verification commands do not activate live mode, read token files, or call live APIs.
 
 Do not print credential environment variables. Do not paste tokens into docs, tests, or runbooks. A live failure must remain a live failure; do not treat it as fixture authorization.
 
