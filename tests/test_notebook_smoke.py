@@ -5,12 +5,29 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tomllib
 
 import marimo
 
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_PATH = ROOT / "notebooks/spx_inventory_app.py"
+
+
+def _script_metadata() -> dict[str, object]:
+    lines = NOTEBOOK_PATH.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "# /// script"
+
+    metadata_lines: list[str] = []
+    for line in lines[1:]:
+        if line == "# ///":
+            break
+        assert line.startswith("#")
+        metadata_lines.append(line[1:].lstrip())
+    else:
+        raise AssertionError("top-level script metadata block is not closed")
+
+    return tomllib.loads("\n".join(metadata_lines))
 
 
 def _load_notebook_module():
@@ -27,6 +44,14 @@ def test_notebook_import_exposes_marimo_app_with_cells() -> None:
 
     assert isinstance(module.app, marimo.App)
     assert len(list(module.app._cell_manager.valid_cells())) > 0
+
+
+def test_notebook_script_metadata_forces_marimo_dark_theme() -> None:
+    metadata = _script_metadata()
+    marimo_config = metadata.get("tool", {}).get("marimo", {})
+
+    assert isinstance(marimo_config, dict)
+    assert marimo_config.get("display") == {"theme": "dark"}
 
 
 def test_notebook_script_exits_under_timeout() -> None:
