@@ -2,16 +2,16 @@
 
 ## Current Position
 
-- Current roadmap position: R7 complete
-- Last completed step: R7 Operator Input Workflow
-- Current step: operator input workflow verified with audit evidence contract
-- Next planned step: R8 Daily Export Bundle
+- Current roadmap position: R8 complete
+- Last completed step: R8 Daily Export Bundle
+- Current step: daily export bundle implemented and awaiting final commit
+- Next planned step: R9 App-Level Smoke and Regression Tests
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Do not start R8 until R7 is verified and committed.
+- Do not start R9 until R8 is verified and committed.
 - Do not call live APIs.
 - Do not read or print token files.
 - Do not introduce commercial SaaS requirements.
@@ -639,3 +639,55 @@ The implementation remains pure and local: it does not persist files, create exp
   - Result: command exited 0 with no stdout/stderr.
 
 R7 is complete. Do not start R8 until explicitly requested.
+
+## R8 Daily Export Bundle - Results
+
+- Date/time in local shell: Mon May 4 01:11:40 EDT 2026
+- Current roadmap position: R8 complete
+- Next step: R9 App-Level Smoke and Regression Tests
+
+### Files Changed
+
+- `src/spx_inventory_playbook/daily_export.py`
+- `tests/test_daily_export_bundle.py`
+- `src/spx_inventory_playbook/__init__.py`
+- `.gitignore`
+- `docs/HANDOFF.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Added a deterministic local daily export bundle capability. The export writes plain JSON files plus a concise markdown daily summary under `.state/exports/daily/{trading_date}/{session_id}/`, or another caller-supplied local state root in tests. It can be run from the repo with `uv run python -m spx_inventory_playbook.daily_export`.
+
+The bundle includes manifest metadata, session JSON, lifecycle event ledger, inventory snapshot, paper-intent collection, market-data summary, authorization audit records, operator notes, and structured operator-input placeholders. Missing optional collections are represented explicitly as empty arrays with `missing` flags where appropriate.
+
+The implementation does not call live APIs, read token files, print credentials, place trades, route orders, submit broker instructions, create broker artifacts, or imply automated execution. Fixture, `live_fresh`, `live_stale`, `live_unavailable`, `live_parse_error`, and `missing` market-data states remain distinct.
+
+### Tests Added
+
+- Required bundle files and sections are written.
+- Missing optional data is represented explicitly and safely.
+- Fixture/live/stale/unavailable/parse-error/missing provenance states are preserved.
+- Secret-like keys and strings are redacted recursively.
+- Export can read existing local state and ledger records without live dependencies.
+- Missing required session metadata fails closed.
+- Fixture/default CLI export writes under a repo-owned state root without credentials.
+
+### Verification Results
+
+- PASS: targeted `uv run pytest -q tests/test_daily_export_bundle.py`
+  - Result: 13 passed.
+- PASS: targeted `uv run ruff check src/spx_inventory_playbook/daily_export.py tests/test_daily_export_bundle.py src/spx_inventory_playbook/__init__.py`
+  - Result: all checks passed.
+
+- PASS: post-edit `uv run pytest`
+  - Result: 542 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+- PASS: post-edit `git status --short`
+  - Result before commit showed only expected R8 tracked modifications and new files.
+
+R8 is complete after commit. Do not start R9 until explicitly requested.

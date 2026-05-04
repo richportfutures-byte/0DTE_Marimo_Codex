@@ -302,6 +302,10 @@ Design inputs around operational clarity, not decoration. Preserve the distincti
 
 ## R8 Daily Export Bundle
 
+### Status
+
+Complete. R8 adds a deterministic local JSON/markdown export bundle command under the repo-owned `.state/exports/daily/{trading_date}/{session_id}/` path. The export preserves session metadata, lifecycle events, inventory snapshots, paper intents, market-data provenance, authorization audit evidence, operator notes, and structured operator-input placeholders without live API calls, credential reads, broker submission, order routing, or automated execution.
+
 ### Goal
 
 Produce a daily local export bundle that preserves session state, inventory events, data provenance, rule decisions, and operator notes.

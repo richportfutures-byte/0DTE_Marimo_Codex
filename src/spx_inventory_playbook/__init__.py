@@ -2,6 +2,7 @@
 
 __all__ = [
     "calculators",
+    "daily_export",
     "fixtures",
     "inventory_ledger",
     "local_state",
