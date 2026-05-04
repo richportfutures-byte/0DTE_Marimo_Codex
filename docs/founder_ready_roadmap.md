@@ -245,6 +245,8 @@ Promote deterministic rules into the main authorization layer for workstation de
 - Unknown or invalid inputs resolve to blocked, no-trade, or manual-confirmation states.
 - Rule decisions are explainable and reproducible.
 - Rule outcomes do not imply trade execution.
+- Fixture data is simulation-only; stale, unavailable, parse-error, missing, or ambiguous market-data states block or severely restrict live authorization.
+- Operator-facing authorization views read from the typed rule-engine decision rather than ad hoc notebook logic.
 
 ### Dependencies
 

@@ -168,7 +168,7 @@ def _():
     )
     from spx_inventory_playbook.prompts import get_session_prompt_templates
     from spx_inventory_playbook.reference import get_reference_cards
-    from spx_inventory_playbook.rules import evaluate_inventory_rules
+    from spx_inventory_playbook.rules import evaluate_rule_engine_authorization
     from spx_inventory_playbook.validators import (
         PositionStructure,
         TimeWindow,
@@ -220,7 +220,7 @@ def _():
         classify_option_chain_freshness,
         create_position,
         create_paper_trade_intent,
-        evaluate_inventory_rules,
+        evaluate_rule_engine_authorization,
         evaluate_market_data_facade,
         fixture_factories,
         get_action_permission_matrix,
@@ -1021,26 +1021,35 @@ def _(fixture_factories, fixture_selector):
 
 
 @app.cell
-def _(evaluate_inventory_rules, selected_state, validate_inventory_state):
+def _(
+    evaluate_rule_engine_authorization,
+    option_chain_toggle_result,
+    selected_state,
+    validate_inventory_state,
+):
     validation_result = validate_inventory_state(selected_state)
-    rule_decision = evaluate_inventory_rules(selected_state)
+    rule_decision = evaluate_rule_engine_authorization(
+        selected_state,
+        market_data_state=option_chain_toggle_result.provider_state,
+    )
     return rule_decision, validation_result
 
 
 @app.cell
-def _(mo, rule_decision, selected_state, validation_result):
+def _(html_escape, mo, rule_decision, selected_state, validation_result):
     _sev = rule_decision.severity.value
+    _action_status = rule_decision.action_status.value
     _sev_meta = {
-        "normal": {
+        "authorized": {
             "badge": "#22c55e",
-            "title": "Action allowed",
-            "subtitle": "No rule blockers detected.",
+            "title": "Can act",
+            "subtitle": "Fresh live market data and rules allow action.",
             "modifier": "normal",
         },
-        "caution": {
+        "confirmation_required": {
             "badge": "#facc15",
-            "title": "Caution",
-            "subtitle": "Discretionary actions allowed with constraints.",
+            "title": "Confirmation required",
+            "subtitle": "Rules allow only after the listed confirmations.",
             "modifier": "caution",
         },
         "restricted": {
@@ -1052,15 +1061,21 @@ def _(mo, rule_decision, selected_state, validation_result):
         "blocked": {
             "badge": "#ef4444",
             "title": "Action blocked",
-            "subtitle": "Discretionary inventory adjustment is blocked.",
+            "subtitle": "The rule engine does not authorize live action.",
+            "modifier": "blocked",
+        },
+        "simulation_only": {
+            "badge": "#ef4444",
+            "title": "Simulation only",
+            "subtitle": "Fixture data cannot authorize live action.",
             "modifier": "blocked",
         },
     }
     _meta = _sev_meta.get(
-        _sev,
+        _action_status,
         {
             "badge": "#94a3b8",
-            "title": _sev.title(),
+            "title": _action_status.replace("_", " ").title(),
             "subtitle": "",
             "modifier": "normal",
         },
@@ -1072,26 +1087,43 @@ def _(mo, rule_decision, selected_state, validation_result):
     _blocked_actions = sorted(
         a.value.replace("_", " ") for a in rule_decision.blocked_actions
     )
-
-    _allowed_chips = (
-        "".join(
-            f'<span class="app-chip app-chip--allowed">{a}</span>'
-            for a in _allowed_actions
-        )
-        or '<span class="app-muted">—</span>'
+    _allowed_structures = sorted(
+        s.value.replace("_", " ") for s in rule_decision.allowed_structures
     )
-    _blocked_chips = (
-        "".join(
-            f'<span class="app-chip app-chip--blocked">{a}</span>'
-            for a in _blocked_actions
+    _blocked_structures = sorted(
+        s.value.replace("_", " ") for s in rule_decision.blocked_structures
+    )
+
+    def _chips(values, kind, empty_label):
+        return (
+            "".join(
+                f'<span class="app-chip app-chip--{kind}">{html_escape(v)}</span>'
+                for v in values
+            )
+            or f'<span class="app-muted">{html_escape(empty_label)}</span>'
         )
-        or '<span class="app-muted">none</span>'
+
+    _allowed_chips = _chips(_allowed_actions, "allowed", "none")
+    _blocked_chips = _chips(_blocked_actions, "blocked", "none")
+    _allowed_structure_chips = _chips(_allowed_structures, "allowed", "none")
+    _blocked_structure_chips = _chips(_blocked_structures, "blocked", "none")
+    _confirmation_items = (
+        "".join(
+            f"<li>{html_escape(str(item))}</li>"
+            for item in rule_decision.required_confirmations
+        )
+        or "<li>none</li>"
+    )
+    _market_state = (
+        rule_decision.market_data_state.value
+        if rule_decision.market_data_state is not None
+        else "missing"
     )
 
     _severity_html = (
         f'<div class="app-severity app-severity--{_meta["modifier"]}">'
         f'<span class="app-severity__badge" style="background:{_meta["badge"]}">'
-        f'{_sev}</span>'
+        f'{html_escape(_action_status)}</span>'
         '<div>'
         f'<div class="app-severity__title">{_meta["title"]}</div>'
         f'<div class="app-severity__subtitle">{_meta["subtitle"]}</div>'
@@ -1099,16 +1131,42 @@ def _(mo, rule_decision, selected_state, validation_result):
     )
 
     _actions_html = (
-        '<div class="app-grid-2">'
-        '<div><div class="app-stat__label">Allowed actions</div>'
-        f'<div style="margin-top:6px">{_allowed_chips}</div></div>'
-        '<div><div class="app-stat__label">Blocked actions</div>'
-        f'<div style="margin-top:6px">{_blocked_chips}</div></div>'
+        '<div class="app-grid-3">'
+        '<div class="app-stat"><div class="app-stat__label">Can I act?</div>'
+        f'<div class="app-stat__value">{html_escape("yes" if rule_decision.can_act else "no")}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Action status</div>'
+        f'<div class="app-stat__value">{html_escape(_action_status)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Market data state</div>'
+        f'<div class="app-stat__value">{html_escape(_market_state)}</div>'
+        f'<div class="app-muted" style="margin-top:6px">{html_escape(rule_decision.data_source_classification.value)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Size tier</div>'
+        f'<div class="app-stat__value">{html_escape(rule_decision.size_tier.value)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Invalidation state</div>'
+        f'<div class="app-stat__value">{html_escape(rule_decision.invalidation_state.value)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Severity</div>'
+        f'<div class="app-stat__value">{html_escape(_sev)}</div></div>'
         '</div>'
+        '<div class="app-grid-2">'
+        '<div><div class="app-stat__label">Allowed</div>'
+        f'<div style="margin-top:6px">{_allowed_chips}</div></div>'
+        '<div><div class="app-stat__label">Blocked</div>'
+        f'<div style="margin-top:6px">{_blocked_chips}</div></div>'
+        '<div><div class="app-stat__label">Allowed structures</div>'
+        f'<div style="margin-top:6px">{_allowed_structure_chips}</div></div>'
+        '<div><div class="app-stat__label">Blocked structures</div>'
+        f'<div style="margin-top:6px">{_blocked_structure_chips}</div></div>'
+        '</div>'
+        '<div style="margin-top:10px"><div class="app-stat__label">'
+        'Required confirmations</div>'
+        f'<ul class="app-list">{_confirmation_items}</ul></div>'
     )
 
-    _reason_items = "".join(f"<li>{r}</li>" for r in rule_decision.reasons)
-    _warning_items = "".join(f"<li>{w}</li>" for w in rule_decision.warnings)
+    _reason_items = "".join(
+        f"<li>{html_escape(str(r))}</li>" for r in rule_decision.reasons
+    )
+    _warning_items = "".join(
+        f"<li>{html_escape(str(w))}</li>" for w in rule_decision.warnings
+    )
     _reasoning_parts = []
     if _reason_items:
         _reasoning_parts.append(
@@ -1272,7 +1330,7 @@ def _(
             option_chain_data_context=option_chain_context_flags.data_context,
             option_chain_warning_level=option_chain_context_flags.operator_warning_level,
             option_chain_reason_codes=option_chain_context_flags.reason_codes,
-            playbook_status_label=rule_decision.severity.value,
+            playbook_status_label=rule_decision.action_status.value,
             playbook_allowed_actions=tuple(
                 sorted(action.value for action in rule_decision.allowed_actions)
             ),
