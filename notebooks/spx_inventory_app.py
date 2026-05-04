@@ -61,11 +61,9 @@ def _(mo):
           text-transform:uppercase;color:#cbd5e1}
         .app-section__rule{flex:1;height:1px;
           background:#334155}
-        @media (max-width:1023px){
-          .app-sidebar{display:block!important;position:relative!important;
-            flex:0 0 auto}
-          .app-sidebar + div{display:none!important}
-        }
+        .app-sidebar{display:block!important;position:relative!important;
+          flex:0 0 auto}
+        .app-sidebar[data-expanded="false"]{width:320px!important}
         .app-card{background:#1e293b;color:#e2e8f0;
           border:1px solid #334155;
           border-radius:10px;padding:14px;margin:6px 0}
@@ -304,6 +302,20 @@ def _(
     )
     paper_trade_ledger_state, set_paper_trade_ledger = mo.state(PaperTradeLedger())
     paper_trade_click_state, set_paper_trade_click = mo.state(0)
+    left_panel_open_state, set_left_panel_open = mo.state(True)
+    left_panel_collapse_click_state, set_left_panel_collapse_click = mo.state(0)
+    left_panel_reopen_click_state, set_left_panel_reopen_click = mo.state(0)
+    left_panel_collapse_button = mo.ui.button(
+        value=0,
+        on_click=lambda value: int(value or 0) + 1,
+        label="Collapse left panel",
+        full_width=True,
+    )
+    left_panel_reopen_button = mo.ui.button(
+        value=0,
+        on_click=lambda value: int(value or 0) + 1,
+        label="Show left panel",
+    )
     daily_budget_input = mo.ui.number(
         value=2000.0,
         step=100.0,
@@ -337,6 +349,11 @@ def _(
         add_click_state,
         current_time_window_selector,
         daily_budget_input,
+        left_panel_collapse_button,
+        left_panel_collapse_click_state,
+        left_panel_open_state,
+        left_panel_reopen_button,
+        left_panel_reopen_click_state,
         market_data_mode_selector,
         manage_click_state,
         option_chain_last_successful_result_state,
@@ -348,6 +365,9 @@ def _(
         paper_trade_ledger_state,
         positions_state,
         set_add_click,
+        set_left_panel_collapse_click,
+        set_left_panel_open,
+        set_left_panel_reopen_click,
         set_option_chain_last_successful_result,
         set_option_chain_provider_result,
         set_manage_click,
@@ -364,6 +384,34 @@ def run_button_click_count(button):
     if frontend_count is not None:
         return int(frontend_count or 0)
     return 1 if button.value else 0
+
+
+@app.cell
+def _(
+    left_panel_collapse_button,
+    left_panel_collapse_click_state,
+    set_left_panel_collapse_click,
+    set_left_panel_open,
+):
+    _click_count = int(left_panel_collapse_button.value or 0)
+    if _click_count > left_panel_collapse_click_state():
+        set_left_panel_collapse_click(_click_count)
+        set_left_panel_open(False)
+    return
+
+
+@app.cell
+def _(
+    left_panel_reopen_button,
+    left_panel_reopen_click_state,
+    set_left_panel_open,
+    set_left_panel_reopen_click,
+):
+    _click_count = int(left_panel_reopen_button.value or 0)
+    if _click_count > left_panel_reopen_click_state():
+        set_left_panel_reopen_click(_click_count)
+        set_left_panel_open(True)
+    return
 
 
 @app.cell
@@ -415,6 +463,28 @@ def _(
         f'{_budget_pct:.0%}</span></span>'
         '</div></div></div>'
     )
+    return
+
+
+@app.cell
+def _(left_panel_open_state, left_panel_reopen_button, mo):
+    if left_panel_open_state():
+        mo.Html("")
+    else:
+        mo.vstack(
+            [
+                mo.Html(
+                    '<div class="app-card">'
+                    '<div class="app-section__title">Risk console hidden</div>'
+                    '<div class="app-muted" style="margin-top:6px">'
+                    'The left panel is collapsed. Main workstation controls '
+                    'remain available.'
+                    '</div></div>'
+                ),
+                left_panel_reopen_button,
+            ],
+            gap=0.5,
+        )
     return
 
 
@@ -2722,6 +2792,8 @@ def _(
     calculate_session_summary,
     current_time_window_selector,
     daily_budget_input,
+    left_panel_collapse_button,
+    left_panel_open_state,
     mo,
     positions_state,
     time_urgency,
@@ -2879,18 +2951,24 @@ def _(
 
     sidebar_parts.append('</div>')
 
-    mo.sidebar(
-        [
-            mo.md("# \U0001f4ca Risk Console"),
-            mo.Html(
-                '<div class="app-muted" style="margin-bottom:10px">'
-                'Persistent session view. Inputs that drive these numbers '
-                '(window, budget) live in the top header strip.'
-                '</div>'
-            ),
-            mo.Html("\n".join(sidebar_parts)),
-        ]
+    _left_panel = (
+        mo.sidebar(
+            [
+                mo.md("# \U0001f4ca Risk Console"),
+                left_panel_collapse_button,
+                mo.Html(
+                    '<div class="app-muted" style="margin-bottom:10px">'
+                    'Persistent session view. Inputs that drive these numbers '
+                    '(window, budget) live in the top header strip.'
+                    '</div>'
+                ),
+                mo.Html("\n".join(sidebar_parts)),
+            ]
+        )
+        if left_panel_open_state()
+        else mo.Html("")
     )
+    _left_panel
     return
 
 

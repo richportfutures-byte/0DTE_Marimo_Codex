@@ -161,4 +161,20 @@ def test_notebook_source_keeps_darkmode_titles_and_sidebar_usable() -> None:
     assert "background:#0b1220;color:#e2e8f0" in source
     assert "text-transform:uppercase;color:#cbd5e1" in source
     assert ".app-sidebar{display:block!important" in source
-    assert ".app-sidebar + div{display:none!important}" in source
+    assert '.app-sidebar[data-expanded="false"]{width:320px!important}' in source
+    assert ".app-sidebar + div{display:none!important}" not in source
+
+
+def test_notebook_source_exposes_operator_sidebar_collapse_and_reopen() -> None:
+    source = NOTEBOOK_PATH.read_text(encoding="utf-8")
+
+    assert "left_panel_open_state, set_left_panel_open = mo.state(True)" in source
+    assert "left_panel_collapse_button = mo.ui.button" in source
+    assert "left_panel_reopen_button = mo.ui.button" in source
+    assert 'label="Collapse left panel"' in source
+    assert 'label="Show left panel"' in source
+    assert "set_left_panel_open(False)" in source
+    assert "set_left_panel_open(True)" in source
+    assert "_left_panel = (" in source
+    assert "if left_panel_open_state()" in source
+    assert "\n    _left_panel\n" in source
