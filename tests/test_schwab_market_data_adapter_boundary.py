@@ -5,6 +5,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "market_data" / "schwab"
+NORMALIZED_FIXTURE_NAMES = {
+    "underlying_quote.valid.json",
+    "option_chain_0dte.valid.json",
+    "option_chain_0dte.partial.json",
+    "option_chain_0dte.crossed_quote.json",
+    "option_chain_0dte.locked_quote.json",
+    "option_chain_0dte.missing_greeks.json",
+    "option_chain_0dte.mismatched_expiry.json",
+    "option_chain_0dte.mark_only_underlying.json",
+}
+RAW_CAPTURE_FIXTURE_NAME = "raw_option_chain_0dte.sanitized.json"
 SCHWAB_TEST_FILES = (
     ROOT / "tests" / "test_schwab_market_data_fixture_mapper.py",
     ROOT / "tests" / "test_schwab_market_data_adapter_boundary.py",
@@ -54,7 +65,8 @@ def imported_modules(path: Path) -> set[str]:
 
 def fixture_payloads() -> list[dict[str, object]]:
     payloads: list[dict[str, object]] = []
-    for path in sorted(FIXTURES.glob("*.json")):
+    for name in sorted(NORMALIZED_FIXTURE_NAMES):
+        path = FIXTURES / name
         payloads.append(json.loads(path.read_text(encoding="utf-8")))
     return payloads
 
@@ -62,16 +74,7 @@ def fixture_payloads() -> list[dict[str, object]]:
 def test_sanitized_schwab_fixture_directory_contains_expected_payloads() -> None:
     names = {path.name for path in FIXTURES.glob("*.json")}
 
-    assert names == {
-        "underlying_quote.valid.json",
-        "option_chain_0dte.valid.json",
-        "option_chain_0dte.partial.json",
-        "option_chain_0dte.crossed_quote.json",
-        "option_chain_0dte.locked_quote.json",
-        "option_chain_0dte.missing_greeks.json",
-        "option_chain_0dte.mismatched_expiry.json",
-        "option_chain_0dte.mark_only_underlying.json",
-    }
+    assert names == NORMALIZED_FIXTURE_NAMES | {RAW_CAPTURE_FIXTURE_NAME}
 
 
 def test_sanitized_schwab_fixtures_are_marked_as_fixtures() -> None:

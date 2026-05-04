@@ -1,6 +1,6 @@
 from dataclasses import fields
 
-from spx_inventory_playbook.reference import ReferenceCard, get_reference_cards
+from spx_inventory_playbook.reference import get_reference_cards
 
 # Fields that contain long-form educational content (exempt from 220-char limit)
 LONG_FORM_FIELDS = frozenset({"deep_dive", "mental_model", "key_mechanics"})

@@ -86,3 +86,8 @@ uv run marimo run notebooks/spx_inventory_app.py
 - Optional export/static publishing workflow.
 - Optional user-input form generation for prompt templates.
 - Optional stronger app-level smoke tests.
+
+## Founder-Ready Completion Roadmap
+
+- [Founder-ready roadmap](docs/founder_ready_roadmap.md)
+- [Orchestration state](docs/orchestration_state.md)

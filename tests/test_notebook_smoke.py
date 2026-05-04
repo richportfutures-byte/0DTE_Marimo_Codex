@@ -1,6 +1,7 @@
 """Smoke tests for the marimo notebook entrypoint."""
 
 from importlib import util
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -29,9 +30,17 @@ def test_notebook_import_exposes_marimo_app_with_cells() -> None:
 
 
 def test_notebook_script_exits_under_timeout() -> None:
+    env = os.environ.copy()
+    src_path = str(ROOT / "src")
+    env["PYTHONPATH"] = (
+        src_path
+        if not env.get("PYTHONPATH")
+        else os.pathsep.join((src_path, env["PYTHONPATH"]))
+    )
     result = subprocess.run(
         [sys.executable, str(NOTEBOOK_PATH)],
         cwd=ROOT,
+        env=env,
         capture_output=True,
         text=True,
         timeout=30,
