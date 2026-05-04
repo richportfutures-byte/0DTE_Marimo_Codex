@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from spx_inventory_playbook.adapters.option_chain_provider import (
+    MarketDataProviderState,
     OptionChainProviderResult,
 )
 
@@ -106,6 +107,42 @@ def classify_option_chain_freshness(
     )
 
 
+def classify_market_data_provider_state(
+    provider_result: OptionChainProviderResult | None,
+    freshness: OptionChainFreshness,
+) -> MarketDataProviderState:
+    """Map provider/freshness details into the explicit R5 provider states."""
+
+    if provider_result is None:
+        return MarketDataProviderState.LIVE_UNAVAILABLE
+
+    if provider_result.source_type == "fixture" or provider_result.is_static_source:
+        return MarketDataProviderState.FIXTURE
+
+    if provider_result.source_type != "live":
+        return MarketDataProviderState.LIVE_UNAVAILABLE
+
+    if provider_result.status == "unavailable":
+        return MarketDataProviderState.LIVE_UNAVAILABLE
+
+    if provider_result.status == "error":
+        if provider_result.reason_code in {
+            "response_parse_error",
+            "fixture_parse_error",
+            "live_harness_error",
+        }:
+            return MarketDataProviderState.LIVE_PARSE_ERROR
+        return MarketDataProviderState.LIVE_UNAVAILABLE
+
+    if freshness.status == "stale":
+        return MarketDataProviderState.LIVE_STALE
+    if freshness.status in {"fresh", "aging"}:
+        return MarketDataProviderState.LIVE_FRESH
+    if freshness.status == "invalid":
+        return MarketDataProviderState.LIVE_PARSE_ERROR
+    return MarketDataProviderState.LIVE_UNAVAILABLE
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         return value.replace(tzinfo=timezone.utc)
@@ -116,5 +153,6 @@ __all__ = [
     "OptionChainFreshness",
     "OptionChainFreshnessStatus",
     "OptionChainFreshnessThresholds",
+    "classify_market_data_provider_state",
     "classify_option_chain_freshness",
 ]

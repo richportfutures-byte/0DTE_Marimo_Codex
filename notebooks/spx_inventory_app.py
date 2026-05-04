@@ -687,10 +687,12 @@ def _(
     option_chain_mode_selector,
     option_chain_provider_result,
     option_chain_refresh_button,
+    option_chain_toggle_result,
 ):
     _result = option_chain_provider_result
     _freshness = option_chain_freshness
     _context = option_chain_context_flags
+    _provider_state = option_chain_toggle_result.provider_state.value
 
     def _fmt(value, precision=2):
         if value is None:
@@ -753,6 +755,10 @@ def _(
         '<div class="app-stat"><div class="app-stat__label">Status</div>'
         f'<div class="app-stat__value">{_chip(_result.status, _status_kind)}</div>'
         f'<div class="app-muted" style="margin-top:6px">Reason: {html_escape(_reason)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Provider state</div>'
+        f'<div class="app-stat__value">{_chip(_provider_state, _status_kind)}</div>'
+        '<div class="app-muted" style="margin-top:6px">'
+        'Explicit R5 fixture/live state for downstream gates.</div></div>'
         '</div>'
     )
     _freshness_html = (

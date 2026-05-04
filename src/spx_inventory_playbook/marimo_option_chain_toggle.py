@@ -8,6 +8,7 @@ position, fill, or P&L code.
 from __future__ import annotations
 
 import os
+import io
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,12 +26,16 @@ from spx_inventory_playbook.adapters.option_chain_context import (
 )
 from spx_inventory_playbook.adapters.option_chain_freshness import (
     OptionChainFreshness,
+    classify_market_data_provider_state,
     classify_option_chain_freshness,
 )
 from spx_inventory_playbook.adapters.option_chain_provider import (
     FixtureOptionChainProvider,
+    MarketDataProviderState,
     OptionChainProviderResult,
+    OptionChainProviderRequest,
     ProviderSourceType,
+    evaluate_live_provider_gate,
 )
 
 
@@ -84,6 +89,7 @@ class MarimoOptionChainToggleResult:
     control_state: MarimoOptionChainControlState
     provider_result: OptionChainProviderResult
     freshness: OptionChainFreshness
+    provider_state: MarketDataProviderState
     context_flags: OptionChainContextFlags
 
     def __repr__(self) -> str:
@@ -92,6 +98,7 @@ class MarimoOptionChainToggleResult:
             f"control_state={self.control_state!r}, "
             f"provider_result={self.provider_result!r}, "
             f"freshness_status={self.freshness.status!r}, "
+            f"provider_state={self.provider_state.value!r}, "
             f"data_context={self.context_flags.data_context!r})"
         )
 
@@ -143,6 +150,7 @@ def load_marimo_option_chain_provider(
     live_token_file_path: Path | None,
     http_get_json: Callable[[SchwabOptionChainRequestSpec, str], JsonObject]
     | None = None,
+    access_token_text: str | None = None,
     now: datetime | None = None,
 ) -> MarimoOptionChainToggleResult:
     """Load one option-chain provider result according to fail-closed controls."""
@@ -161,23 +169,27 @@ def load_marimo_option_chain_provider(
         ).get_spx_0dte_selection()
         return _toggle_result(control_state, provider_result, now=loaded_at)
 
-    if not control_state.manual_confirmation_valid:
-        provider_result = _blocked_live_provider_result(
-            reason_code="manual_live_confirmation_required",
-            loaded_at=loaded_at,
+    gate_decision = evaluate_live_provider_gate(
+        OptionChainProviderRequest(
+            requested_source_type=control_state.requested_source_type,
+            confirm_live=confirm_live,
+            live_token_file_path=live_token_file_path,
+            required_confirmation_phrase=MANUAL_LIVE_CONFIRM_PHRASE,
         )
-        return _toggle_result(control_state, provider_result, now=loaded_at)
-
-    if live_token_file_path is None:
+    )
+    if not gate_decision.allowed:
         provider_result = _blocked_live_provider_result(
-            reason_code="access_token_required",
+            reason_code=gate_decision.reason_code or "live_provider_unavailable",
             loaded_at=loaded_at,
         )
         return _toggle_result(control_state, provider_result, now=loaded_at)
 
     harness_result = run_manual_live_schwab_option_chain_selection(
         config=ManualLiveSchwabOptionChainConfig(confirm_live=confirm_live),
-        access_token_file=live_token_file_path,
+        access_token_file=live_token_file_path if access_token_text is None else None,
+        access_token_stdin=(
+            io.StringIO(access_token_text) if access_token_text is not None else None
+        ),
         http_get_json=http_get_json,
         now=loaded_at,
     )
@@ -203,6 +215,7 @@ def build_marimo_option_chain_toggle_result(
 
     evaluated_at = now or _utc_now()
     freshness = classify_option_chain_freshness(provider_result, now=evaluated_at)
+    provider_state = classify_market_data_provider_state(provider_result, freshness)
     context_flags = build_option_chain_context_flags(
         provider_result.selection_view,
         freshness,
@@ -211,6 +224,7 @@ def build_marimo_option_chain_toggle_result(
         control_state=control_state,
         provider_result=provider_result,
         freshness=freshness,
+        provider_state=provider_state,
         context_flags=context_flags,
     )
 

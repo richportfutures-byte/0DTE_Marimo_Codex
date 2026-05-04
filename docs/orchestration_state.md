@@ -2,10 +2,10 @@
 
 ## Current Position
 
-- Current roadmap position: R4 complete
-- Last completed step: R4 Inventory Ledger
-- Current step: inventory ledger foundation implemented and verified
-- Next planned step: R5 Market Data Provider Unification
+- Current roadmap position: R5 complete
+- Last completed step: R5 Market Data Provider Unification
+- Current step: market data provider boundary unified and verified
+- Next planned step: R6 Rule Engine as Main Authorization Layer
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
@@ -483,3 +483,108 @@ The module defines inventory record kind, status, and event-type enums; frozen d
   - Result: command exited 0 with no stdout/stderr.
 
 R4 is complete. The next step is R5 Market Data Provider Unification. Do not start R5 until explicitly requested.
+
+## R5 Market Data Provider Unification - Results
+
+- Date/time in local shell: Mon May 4 00:18:20 EDT 2026
+- Current roadmap position: R5 complete
+- Next step: R6 Rule Engine as Main Authorization Layer
+
+### Files Changed
+
+- `src/spx_inventory_playbook/adapters/option_chain_provider.py`
+- `src/spx_inventory_playbook/adapters/option_chain_freshness.py`
+- `src/spx_inventory_playbook/marimo_option_chain_toggle.py`
+- `notebooks/spx_inventory_app.py`
+- `tests/test_market_data_provider_unification.py`
+- `tests/test_marimo_option_chain_toggle.py`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Added an explicit typed R5 provider boundary around option-chain market data. The boundary preserves fixture mode as the default, requires live mode to pass a manual confirmation phrase and token-file path gate, classifies provider/freshness output into the five required states, and exposes the state to downstream code and the notebook display without introducing any broker/order/execution behavior.
+
+The explicit provider states are:
+
+- `FIXTURE`
+- `LIVE_FRESH`
+- `LIVE_STALE`
+- `LIVE_UNAVAILABLE`
+- `LIVE_PARSE_ERROR`
+
+### Safety Rules Implemented
+
+- Fixture mode remains the default app/test provider path.
+- Live activation is fail-closed unless the exact confirmation phrase and token-file path are both present.
+- The live gate evaluates token-file path presence without reading or displaying file contents.
+- R5 tests exercise live success/error paths with an injected in-memory token and mocked fetchers, not real token files or network calls.
+- Live failures remain live failures; they do not silently fall back to fixture data.
+- Stale and fresh live states are derived from deterministic timestamps and configurable freshness thresholds.
+- Malformed live payloads map to `LIVE_PARSE_ERROR`.
+- Unavailable live conditions map to `LIVE_UNAVAILABLE`.
+- Safe provider-state summaries omit token-file paths, auth headers, raw payload bodies, and credential contents.
+- The notebook now surfaces the explicit provider state in the existing option-chain panel while keeping fixture/live labels distinct.
+
+### Tests Added/Updated
+
+- Added `tests/test_market_data_provider_unification.py`.
+- Updated `tests/test_marimo_option_chain_toggle.py`.
+- Covered fixture default behavior.
+- Covered live block without confirmation phrase.
+- Covered live block without token-file path.
+- Covered token-file contents not being read in R5 live-toggle tests.
+- Covered no live network calls in fixture default tests.
+- Covered `LIVE_STALE`, `LIVE_FRESH`, `LIVE_PARSE_ERROR`, and `LIVE_UNAVAILABLE` mapping.
+- Covered no silent fallback from failed live mode to fixture mode.
+- Covered safe non-secret provider-state summary.
+- Covered notebook source surfacing the provider state.
+
+### Commands Run
+
+- `git status --short`
+- `git log -6 --oneline`
+- `uv run pytest`
+- `uv run ruff check .`
+- `uv run python notebooks/spx_inventory_app.py`
+- `rg -n "Market Data|market_data|OptionChain|FixtureOptionChainProvider|LiveSchwab|LIVE|fixture|freshness|token|confirmation|provider" src notebooks tests docs README.md`
+- `sed -n '1,260p' src/spx_inventory_playbook/market_data_facade.py`
+- `sed -n '1,360p' src/spx_inventory_playbook/adapters/option_chain_provider.py`
+- `sed -n '1,260p' src/spx_inventory_playbook/adapters/option_chain_freshness.py`
+- `sed -n '1,280p' src/spx_inventory_playbook/marimo_option_chain_toggle.py`
+- `sed -n '1,380p' src/spx_inventory_playbook/adapters/live_schwab_option_chain_provider.py`
+- `sed -n '1,280p' tests/test_option_chain_provider.py`
+- `sed -n '1,320p' tests/test_marimo_option_chain_toggle.py`
+- `sed -n '240,340p' notebooks/spx_inventory_app.py`
+- `sed -n '630,880p' notebooks/spx_inventory_app.py`
+- `sed -n '1,260p' src/spx_inventory_playbook/adapters/option_chain_context.py`
+- `sed -n '1,260p' tests/test_option_chain_freshness.py`
+- `uv run pytest -q tests/test_market_data_provider_unification.py tests/test_marimo_option_chain_toggle.py tests/test_option_chain_freshness.py tests/test_option_chain_provider.py`
+- `uv run ruff check src/spx_inventory_playbook/adapters/option_chain_provider.py src/spx_inventory_playbook/adapters/option_chain_freshness.py src/spx_inventory_playbook/marimo_option_chain_toggle.py notebooks/spx_inventory_app.py tests/test_market_data_provider_unification.py tests/test_marimo_option_chain_toggle.py`
+- `uv run pytest -q tests/test_market_data_provider_unification.py tests/test_marimo_option_chain_toggle.py tests/test_option_chain_freshness.py tests/test_option_chain_provider.py tests/test_notebook_smoke.py`
+- `date`
+- `git status --short`
+- `uv run pytest`
+- `uv run ruff check .`
+- `uv run python notebooks/spx_inventory_app.py`
+
+### Verification Results
+
+- PASS: baseline `uv run pytest`
+  - Result before R5 edits: 478 passed.
+- PASS: baseline `uv run ruff check .`
+  - Result before R5 edits: all checks passed.
+- PASS: baseline `uv run python notebooks/spx_inventory_app.py`
+  - Result before R5 edits: command exited 0 with no stdout/stderr.
+- PASS: targeted `uv run pytest -q tests/test_market_data_provider_unification.py tests/test_marimo_option_chain_toggle.py tests/test_option_chain_freshness.py tests/test_option_chain_provider.py tests/test_notebook_smoke.py`
+  - Result: 42 passed.
+- PASS: targeted `uv run ruff check src/spx_inventory_playbook/adapters/option_chain_provider.py src/spx_inventory_playbook/adapters/option_chain_freshness.py src/spx_inventory_playbook/marimo_option_chain_toggle.py notebooks/spx_inventory_app.py tests/test_market_data_provider_unification.py tests/test_marimo_option_chain_toggle.py`
+  - Result: all checks passed.
+
+- PASS: post-edit `uv run pytest`
+  - Result: 491 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+
+R5 is complete. The next step is R6 Rule Engine as Main Authorization Layer. Do not start R6 until explicitly requested.

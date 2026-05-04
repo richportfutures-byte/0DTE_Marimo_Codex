@@ -38,7 +38,10 @@ RAW_PAYLOAD_MARKER = "raw-payload-body-marker"
 
 def write_token_file(tmp_path: Path) -> Path:
     token_file = tmp_path / "schwab-token.json"
-    token_file.write_text(json.dumps({"access_token": RAW_TOKEN}), encoding="utf-8")
+    token_file.write_text(
+        json.dumps({"access_token": "token-file-contents-must-not-be-read"}),
+        encoding="utf-8",
+    )
     return token_file
 
 
@@ -132,6 +135,7 @@ def test_mocked_live_success_renders_live_schwab_provider_not_fixture(
         fixture_path=FIXTURE_PATH,
         live_token_file_path=write_token_file(tmp_path),
         http_get_json=successful_fetcher,
+        access_token_text=RAW_TOKEN,
         now=NOW,
     )
 
@@ -141,6 +145,7 @@ def test_mocked_live_success_renders_live_schwab_provider_not_fixture(
     assert result.provider_result.source_label == "manual_live_schwab_option_chain"
     assert result.provider_result.status == "available"
     assert result.freshness.status == "fresh"
+    assert result.provider_state.value == "live_fresh"
     assert result.context_flags.data_context == "fresh_live"
 
 
@@ -169,12 +174,14 @@ def test_mocked_live_failure_has_safe_reason_without_payload_token_or_header(
         fixture_path=FIXTURE_PATH,
         live_token_file_path=write_token_file(tmp_path),
         http_get_json=failing_fetcher,
+        access_token_text=RAW_TOKEN,
         now=NOW,
     )
     rendered = f"{result!r} {result.provider_result!r} {result.context_flags!r}"
 
     assert result.provider_result.status == "error"
     assert result.provider_result.reason_code == "http_401_unauthorized"
+    assert result.provider_state.value == "live_unavailable"
     assert RAW_TOKEN not in rendered
     assert RAW_PAYLOAD_MARKER not in rendered
     assert "Authorization" not in rendered
@@ -213,6 +220,7 @@ def test_notebook_source_includes_controlled_live_toggle_labels() -> None:
     assert "Option Chain Live Schwab View" in source
     assert "Token file path is read from environment" in source
     assert "Last successful result retained" in source
+    assert "Provider state" in source
 
 
 def test_live_toggle_code_does_not_import_playbook_authorization_modules() -> None:
