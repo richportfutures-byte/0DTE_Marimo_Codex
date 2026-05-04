@@ -8,5 +8,6 @@ __all__ = [
     "prompts",
     "reference",
     "rules",
+    "session_lifecycle",
     "validators",
 ]
