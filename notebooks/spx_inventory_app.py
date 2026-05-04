@@ -19,43 +19,51 @@ def _(mo):
     # subtle tinted backgrounds.
     mo.Html(
         """<style>
-        .app-shell{padding:0 4px}
+        .marimo-cell-output:has(.app-shell),
+        .marimo-cell-output:has(.app-card),
+        .marimo-cell-output:has(.app-severity),
+        .marimo-cell-output:has(.app-section),
+        .marimo-cell-output:has(.app-ribbon),
+        .marimo-cell-output:has(.app-stat),
+        .marimo-cell-output:has(.app-mental){
+          background:#0b1220;color:#e2e8f0}
+        .app-shell{padding:0 4px;background:#0b1220;color:#e2e8f0}
         .app-header{display:flex;align-items:center;gap:14px;padding:12px 16px;
-          border:1px solid var(--md-sys-color-outline-variant,#334155);
+          border:1px solid #334155;
           border-radius:10px;
-          background:var(--md-sys-color-surface-container-low,#0f172a)}
+          background:#0f172a}
         .app-header__title{font-size:1.05em;font-weight:700;letter-spacing:-0.01em;
-          color:var(--md-sys-color-on-surface,#e2e8f0)}
+          color:#e2e8f0}
         .app-header__subtitle{color:#94a3b8;font-size:0.78em;margin-top:2px}
         .app-header__pills{margin-left:auto;display:flex;gap:8px;
           align-items:center;flex-wrap:wrap;justify-content:flex-end}
         .app-pill{display:inline-flex;align-items:center;gap:6px;
-          background:var(--md-sys-color-surface-container,#1e293b);
-          color:var(--md-sys-color-on-surface,#e2e8f0);
-          border:1px solid var(--md-sys-color-outline-variant,#334155);
+          background:#1e293b;
+          color:#e2e8f0;
+          border:1px solid #334155;
           padding:4px 10px;border-radius:6px;font-size:0.8em;font-weight:500}
         .app-pill__label{color:#94a3b8;font-size:0.72em;text-transform:uppercase;
           letter-spacing:0.06em;font-weight:600}
         .app-pill__value{font-weight:700;font-variant-numeric:tabular-nums}
         .app-ribbon{padding:6px 12px;border-radius:6px;font-size:0.78em;
           color:#94a3b8;
-          background:var(--md-sys-color-surface-container-lowest,#0b1220);
-          border:1px dashed var(--md-sys-color-outline-variant,#334155);
+          background:#0b1220;
+          border:1px dashed #334155;
           margin:8px 0 14px}
         .app-section{margin:18px 0 6px;padding:0 4px;
           display:flex;align-items:center;gap:10px}
         .app-section__title{font-size:0.78em;font-weight:700;letter-spacing:0.1em;
           text-transform:uppercase;color:#94a3b8}
         .app-section__rule{flex:1;height:1px;
-          background:var(--md-sys-color-outline-variant,#334155)}
-        .app-card{background:var(--md-sys-color-surface-container,#1e293b);
-          border:1px solid var(--md-sys-color-outline-variant,#334155);
+          background:#334155}
+        .app-card{background:#1e293b;color:#e2e8f0;
+          border:1px solid #334155;
           border-radius:10px;padding:14px;margin:6px 0}
         .app-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
         .app-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-        .app-stat{background:var(--md-sys-color-surface-container-high,#1e293b);
+        .app-stat{background:#1e293b;color:#e2e8f0;
           border-radius:8px;padding:10px;
-          border:1px solid var(--md-sys-color-outline-variant,#334155)}
+          border:1px solid #334155}
         .app-stat__label{color:#94a3b8;font-size:0.72em;text-transform:uppercase;
           letter-spacing:0.06em;font-weight:600}
         .app-stat__value{margin-top:4px;color:#e2e8f0;font-size:0.95em;
@@ -80,7 +88,7 @@ def _(mo):
         .app-muted{color:#94a3b8;font-size:0.85em}
         .app-list{margin:6px 0 0;padding:0;list-style:none}
         .app-list li{padding:5px 0;color:#cbd5e1;
-          border-top:1px dashed var(--md-sys-color-outline-variant,#334155)}
+          border-top:1px dashed #334155}
         .app-list li:first-child{border-top:none}
         .app-mental{background:rgba(99,102,241,0.07);
           border-left:3px solid #818cf8;border-radius:8px;
