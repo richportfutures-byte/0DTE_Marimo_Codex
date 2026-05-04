@@ -2,10 +2,10 @@
 
 ## Current Position
 
-- Current roadmap position: R3 complete
-- Last completed step: R3 Durable Local State
-- Current step: durable local state foundation implemented and verified
-- Next planned step: R4 Inventory Ledger
+- Current roadmap position: R4 complete
+- Last completed step: R4 Inventory Ledger
+- Current step: inventory ledger foundation implemented and verified
+- Next planned step: R5 Market Data Provider Unification
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
@@ -368,3 +368,118 @@ This is not the R4 inventory ledger. It stores session metadata and lifecycle ev
   - Result: command exited 0 with no stdout/stderr.
 
 R3 is complete. The next step is R4 Inventory Ledger. Do not start R4 until explicitly requested.
+
+## R4 Inventory Ledger - Results
+
+- Date/time in local shell: Sun May 3 23:42:11 EDT 2026
+- Current roadmap position: R4 complete
+- Next step: R5 Market Data Provider Unification
+
+### Files Changed
+
+- `src/spx_inventory_playbook/inventory_ledger.py`
+- `tests/test_inventory_ledger.py`
+- `src/spx_inventory_playbook/__init__.py`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Added a durable, local, append-only inventory ledger foundation for personal SPX/SPXW 0DTE workstation records. The ledger stores paper-only position and paper-intent records plus ledger events as deterministic JSONL under the existing R3 local-state root. It does not reconstruct position state yet, mutate prior records, wire into the notebook, unify live providers, create export bundles, or add broker/order/execution behavior.
+
+The module defines inventory record kind, status, and event-type enums; frozen dataclasses for legs, records, events, and snapshots; deterministic JSON helpers; an append-only `InventoryLedgerStore`; and an interop helper that maps existing `PaperTradeIntent` values into paper-only `InventoryRecord` values.
+
+### Storage Layout
+
+- Inventory records: `.state/sessions/{session_id}.inventory.records.jsonl`
+- Inventory events: `.state/sessions/{session_id}.inventory.events.jsonl`
+- Both files are UTF-8 append-only JSONL with one deterministic JSON object per line.
+
+### Safety Rules Implemented
+
+- Uses the R3 `LocalStatePaths` root and does not invent a separate storage root.
+- Session, record, event, and leg IDs must be non-empty and path-safe.
+- Store paths are checked so reads and writes remain inside the configured R3 root.
+- Unknown JSON fields are ignored on read.
+- Missing required fields and malformed field types raise `ValueError`.
+- Invalid record kind, status, and event type values are rejected.
+- Corrupt JSONL raises safe `ValueError` messages without echoing raw file content.
+- Notes and event summaries are redacted through the R3 redaction helper before serialization/storage.
+- Money/price-like fields are stored as strings and are not coerced to floats.
+- Static fixture, stale, unavailable, invalid, and unknown paper-intent contexts require explicit operator acknowledgement.
+- No Marimo, live API, token-file, broker integration, database, or background process dependency was added.
+
+### Paper-Only / No-Broker-Submission Invariants
+
+- `InventoryRecord.is_paper_only` must remain `True`.
+- `InventoryRecord.broker_submitted` must remain `False`.
+- `inventory_record_from_paper_trade_intent` preserves the existing paper-only/no-broker-submission fields from `PaperTradeIntent` and rejects violations through `InventoryRecord` validation.
+- The mapper preserves source/freshness/context/playbook fields and does not imply execution.
+
+### Tests Added
+
+- Leg serialization roundtrip.
+- Record serialization roundtrip.
+- Event serialization roundtrip.
+- Snapshot serialization roundtrip.
+- Extra JSON fields are ignored.
+- Missing required fields fail.
+- Malformed field types fail.
+- Invalid IDs are rejected.
+- Invalid kind, status, and event type are rejected.
+- Thesis and invalidation are required unless the record is rejected.
+- `broker_submitted=True` is rejected.
+- `is_paper_only=False` is rejected.
+- Static fixture, stale, unavailable, invalid, and unknown paper-intent contexts require acknowledgement.
+- Acknowledged fixture/stale context is accepted for paper-only recordkeeping.
+- Notes and summaries are redacted.
+- Record and event appends preserve order.
+- Snapshot reads return both records and events.
+- Corrupt records/events JSONL raise safe `ValueError`.
+- Path traversal cannot escape root.
+- `PaperTradeIntent` maps into `InventoryRecord`.
+- No Marimo import is required.
+- No live API or token-file access is performed.
+
+### Commands Run
+
+- `git status --short`
+- `git log -6 --oneline`
+- `uv run pytest`
+- `uv run ruff check .`
+- `uv run python notebooks/spx_inventory_app.py`
+- `sed -n '1,260p' docs/founder_ready_roadmap.md`
+- `sed -n '1,420p' docs/orchestration_state.md`
+- `sed -n '1,340p' src/spx_inventory_playbook/local_state.py`
+- `sed -n '1,360p' tests/test_local_state.py`
+- `sed -n '1,420p' src/spx_inventory_playbook/positions.py`
+- `sed -n '1,420p' src/spx_inventory_playbook/paper_trades.py`
+- `sed -n '1,420p' tests/test_positions.py`
+- `sed -n '1,420p' tests/test_paper_trades.py`
+- `uv run pytest -q tests/test_inventory_ledger.py`
+- `uv run ruff check src/spx_inventory_playbook/inventory_ledger.py tests/test_inventory_ledger.py src/spx_inventory_playbook/__init__.py`
+- `date`
+- `uv run pytest`
+- `uv run ruff check .`
+- `uv run python notebooks/spx_inventory_app.py`
+
+### Verification Results
+
+- PASS: baseline `uv run pytest`
+  - Result before R4 edits: 439 passed.
+- PASS: baseline `uv run ruff check .`
+  - Result before R4 edits: all checks passed.
+- PASS: baseline `uv run python notebooks/spx_inventory_app.py`
+  - Result before R4 edits: command exited 0 with no stdout/stderr.
+- PASS: targeted `uv run pytest -q tests/test_inventory_ledger.py`
+  - Result: 39 passed.
+- PASS: targeted `uv run ruff check src/spx_inventory_playbook/inventory_ledger.py tests/test_inventory_ledger.py src/spx_inventory_playbook/__init__.py`
+  - Result: all checks passed.
+
+- PASS: post-edit `uv run pytest`
+  - Result: 478 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+
+R4 is complete. The next step is R5 Market Data Provider Unification. Do not start R5 until explicitly requested.
