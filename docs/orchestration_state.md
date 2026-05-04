@@ -2,16 +2,16 @@
 
 ## Current Position
 
-- Current roadmap position: R9 complete
-- Last completed step: R9 App-Level Smoke and Regression Tests
-- Current step: app-level regression coverage implemented and awaiting final commit
-- Next planned step: R10 Launch Ergonomics and Runbooks
+- Current roadmap position: R10 complete
+- Last completed step: R10 Launch Ergonomics and Runbooks
+- Current step: launch ergonomics and runbooks implemented and awaiting final commit
+- Next planned step: R11 Final Founder-Ready Acceptance
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Do not start R10 until R9 is verified and committed.
+- Do not start R11 until R10 is verified and committed.
 - Do not call live APIs.
 - Do not read or print token files.
 - Do not introduce commercial SaaS requirements.
@@ -732,3 +732,54 @@ The coverage proves notebook import and script smoke behavior, deterministic ses
   - Result before commit showed only expected R9 documentation changes and the new app-level regression test file.
 
 R9 is complete after commit. Do not start R10 until explicitly requested.
+
+## R10 Launch Ergonomics and Runbooks - Results
+
+- Date/time in local shell: Mon May 4 01:24:47 EDT 2026
+- Current roadmap position: R10 complete
+- Next step: R11 Final Founder-Ready Acceptance
+
+### Files Changed
+
+- `scripts/launch_app.sh`
+- `scripts/verify.sh`
+- `scripts/export_daily_bundle.sh`
+- `docs/OPERATOR_RUNBOOK.md`
+- `tests/test_launch_ergonomics.py`
+- `README.md`
+- `docs/HANDOFF.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Added repo-owned local ergonomics for launching, verifying, and exporting the workstation:
+
+- `scripts/launch_app.sh` starts Marimo on `127.0.0.1:27182` by default, detects port conflicts when `lsof` is available, and does not kill processes.
+- `scripts/verify.sh` runs the founder-ready verification sequence without hiding output.
+- `scripts/export_daily_bundle.sh` writes a fixture/default R8 export under `.state/exports/daily/{trading_date}/{session_id}/`.
+- `docs/OPERATOR_RUNBOOK.md` covers normal launch, verification, daily export, fixture/default operation, live-data gate behavior, degraded data handling, restart/recovery, troubleshooting, and no-push guidance.
+
+All R10 scripts are fixture-safe by default and do not call live APIs, read token files, print credential environment variables, route orders, submit broker instructions, or imply automated execution.
+
+### Tests Added
+
+- `tests/test_launch_ergonomics.py`
+
+### Verification Results
+
+- PASS: targeted `uv run pytest -q tests/test_launch_ergonomics.py`
+  - Result: 5 passed.
+- PASS: targeted `uv run ruff check tests/test_launch_ergonomics.py`
+  - Result: all checks passed.
+
+- PASS: post-edit `uv run pytest`
+  - Result: 553 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+- PASS: post-edit `git status --short`
+  - Result before commit showed only expected R10 script, runbook, test, README, and documentation changes.
+
+R10 is complete after commit. Do not start R11 until explicitly requested.

@@ -5,6 +5,10 @@
 - Local branch: `main`
 - Remote tracking: `origin/main`
 - App entrypoint: `notebooks/spx_inventory_app.py`
+- Launch command: `scripts/launch_app.sh`
+- Verification command: `scripts/verify.sh`
+- Daily export command: `scripts/export_daily_bundle.sh`
+- Operator runbook: `docs/OPERATOR_RUNBOOK.md`
 - Test count is intentionally not pinned here; run `uv run pytest`, or `uv run pytest --collect-only` if a count is needed.
 - The app is a marimo-based reference and operating framework for 0DTE SPX/SPXW inventory work.
 
@@ -15,6 +19,9 @@
 - `src/spx_inventory_playbook/operator_inputs.py`: typed R7 operator input object, validation, normalization into inventory/rule context, and serializable audit evidence for authorization passes.
 - `src/spx_inventory_playbook/rules.py`: deterministic R6 authorization layer. Its top-level `RuleDecision` answers whether the operator can act, what is allowed or blocked, required confirmations, reasons, warnings, market-data state, and fixture/live classification.
 - `src/spx_inventory_playbook/daily_export.py`: R8 deterministic local daily export bundle writer and `python -m` command.
+- `scripts/launch_app.sh`: R10 fixture-default local Marimo launch wrapper.
+- `scripts/verify.sh`: R10 founder-ready verification sequence wrapper.
+- `scripts/export_daily_bundle.sh`: R10 fixture/default daily export wrapper.
 - `src/spx_inventory_playbook/fixtures.py`: abstract fixture states for tests and UI smoke paths.
 - `src/spx_inventory_playbook/calculators.py`: pure hedge and cost/friction calculators.
 - `src/spx_inventory_playbook/positions.py`: position tracking, lifecycle helpers, and session summary math.
@@ -48,22 +55,34 @@ Default verification remains non-live, credential-free, and fixture-safe.
 ## Verification Commands
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run python notebooks/spx_inventory_app.py
+scripts/verify.sh
 uv run marimo run notebooks/spx_inventory_app.py
 ```
 
-## Daily Export Bundle
+`scripts/verify.sh` runs `uv run pytest`, `uv run ruff check .`, and `uv run python notebooks/spx_inventory_app.py` without hiding failed command output.
 
-R8 adds a local, deterministic export path under the repo-owned state tree:
+## Launch And Runbooks
+
+R10 adds repo-owned local ergonomics:
 
 ```bash
-uv run python -m spx_inventory_playbook.daily_export \
-  --state-root .state \
-  --session-id fixture-2026-05-04 \
-  --trading-date 2026-05-04 \
-  --fixture-default
+scripts/launch_app.sh
+scripts/verify.sh
+scripts/export_daily_bundle.sh
+```
+
+`scripts/launch_app.sh` starts the Marimo workstation on `127.0.0.1:27182` by default. It is fixture-safe, does not require live credentials, does not read or print token files, does not call live APIs by default, and reports a port conflict instead of killing processes. Set `SPX_WORKSTATION_PORT` to use another local port.
+
+`scripts/export_daily_bundle.sh` writes a fixture/default daily export under `.state/exports/daily/{trading_date}/{session_id}/`. It reuses the R8 export module, preserving redaction and provenance behavior.
+
+Operational runbooks live in `docs/OPERATOR_RUNBOOK.md` and cover normal launch, verification, daily export, fixture/default operation, live-data gate behavior, degraded data, restart/recovery, troubleshooting, and the no-push boundary.
+
+## Daily Export Bundle
+
+R8/R10 provide a local, deterministic export path under the repo-owned state tree:
+
+```bash
+scripts/export_daily_bundle.sh 2026-05-04 fixture-2026-05-04
 ```
 
 The command writes plain files under `.state/exports/daily/{trading_date}/{session_id}/`:
@@ -91,6 +110,7 @@ Fixture, `live_fresh`, `live_stale`, `live_unavailable`, `live_parse_error`, and
 - Operator-facing authorization in the notebook must derive from the rule-engine `RuleDecision`; fixture data is simulation-only and cannot grant live authorization.
 - The Decision Console default path is structured operator input; fixture presets are available only as labeled simulation/demo inputs and still pass through validation.
 - Daily exports are local evidence bundles only; they are not broker artifacts or order tickets.
+- R10 launch, verify, and export wrappers are fixture-safe by default and do not read credential material.
 - The app may provide bounded decision support: no-trade states, structure ranking, invalidation logic, risk warnings, and trade-plan checks.
 - The app must not place trades, route orders, or present itself as an automated execution system.
 - The app supports operator judgment; it does not replace trader responsibility.

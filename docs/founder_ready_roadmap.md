@@ -386,6 +386,10 @@ Use tests to protect operational behavior, not to encode incidental UI layout. K
 
 ## R10 Launch Ergonomics and Runbooks
 
+### Status
+
+Complete. R10 adds repo-owned launch, verification, and fixture/default export wrappers plus an operator runbook for local startup, verification, daily export, live-data safety, degraded data handling, restart/recovery, troubleshooting, and the no-push boundary.
+
 ### Goal
 
 Make the workstation easy and safe to start, operate, recover, and shut down during a trading day.

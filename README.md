@@ -14,7 +14,9 @@ This repo is a compact reference and operator decision-support shell for 0DTE SP
 - `positions.py`: Position tracking, lifecycle helpers, and session summary math.
 - `playbook.py`: Inventory Adjustment Playbook.
 - `prompts.py`: Session-Specific Prompt Workflow.
+- `daily_export.py`: Local daily export bundle.
 - `notebooks/spx_inventory_app.py`: marimo UI shell.
+- `scripts/`: Local launch, verification, and export wrappers.
 - `tests/`: unit tests and guardrail checks.
 
 ## Live-Data-Safe Boundaries
@@ -41,6 +43,12 @@ Run tests:
 uv run pytest
 ```
 
+Run founder-ready verification:
+
+```bash
+scripts/verify.sh
+```
+
 Smoke test the notebook script:
 
 ```bash
@@ -50,8 +58,16 @@ uv run python notebooks/spx_inventory_app.py
 Launch the marimo app:
 
 ```bash
-uv run marimo run notebooks/spx_inventory_app.py
+scripts/launch_app.sh
 ```
+
+Export a fixture/default daily bundle:
+
+```bash
+scripts/export_daily_bundle.sh
+```
+
+See [Operator Runbook](docs/OPERATOR_RUNBOOK.md) for normal launch, verification, daily export, live-data safety, restart/recovery, and troubleshooting.
 
 ## Current App Sections
 
