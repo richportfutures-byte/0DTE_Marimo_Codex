@@ -137,6 +137,23 @@ def _():
         PREVIEW_SCENARIO_LABELS,
         build_market_data_preview_scenario,
     )
+    from spx_inventory_playbook.operator_inputs import (
+        OperatorBehaviorAuthorization,
+        OperatorContinuationState,
+        OperatorDeltaContext,
+        OperatorFoundationState,
+        OperatorGammaRegime,
+        OperatorInputState,
+        OperatorLiquidity,
+        OperatorLockoutState,
+        OperatorLossAvoidanceRisk,
+        OperatorPositionSize,
+        OperatorRuleViolationState,
+        OperatorSetup,
+        OperatorThesisValidity,
+        normalize_operator_input_state,
+        operator_input_from_inventory_state,
+    )
     from spx_inventory_playbook.marimo_option_chain_toggle import (
         FIXTURE_OPTION_CHAIN_MODE_LABEL,
         LIVE_OPTION_CHAIN_MODE_LABEL,
@@ -168,8 +185,9 @@ def _():
     )
     from spx_inventory_playbook.prompts import get_session_prompt_templates
     from spx_inventory_playbook.reference import get_reference_cards
-    from spx_inventory_playbook.rules import evaluate_rule_engine_authorization
+    from spx_inventory_playbook.rules import evaluate_operator_input_authorization
     from spx_inventory_playbook.validators import (
+        DealerRegime,
         PositionStructure,
         TimeWindow,
         validate_inventory_state,
@@ -200,6 +218,19 @@ def _():
         FixtureOptionChainProvider,
         FIXTURE_OPTION_CHAIN_MODE_LABEL,
         LIVE_OPTION_CHAIN_MODE_LABEL,
+        OperatorBehaviorAuthorization,
+        OperatorContinuationState,
+        OperatorDeltaContext,
+        OperatorFoundationState,
+        OperatorGammaRegime,
+        OperatorInputState,
+        OperatorLiquidity,
+        OperatorLockoutState,
+        OperatorLossAvoidanceRisk,
+        OperatorPositionSize,
+        OperatorRuleViolationState,
+        OperatorSetup,
+        OperatorThesisValidity,
         Permission,
         PaperTradeLedger,
         PaperTradeLeg,
@@ -220,7 +251,8 @@ def _():
         classify_option_chain_freshness,
         create_position,
         create_paper_trade_intent,
-        evaluate_rule_engine_authorization,
+        DealerRegime,
+        evaluate_operator_input_authorization,
         evaluate_market_data_facade,
         fixture_factories,
         get_action_permission_matrix,
@@ -234,6 +266,8 @@ def _():
         build_marimo_option_chain_toggle_result,
         load_marimo_option_chain_provider,
         market_data_scenario_names,
+        normalize_operator_input_state,
+        operator_input_from_inventory_state,
         resolve_live_token_file_path,
         time_urgency,
         validate_inventory_state,
@@ -983,26 +1017,206 @@ def _(mo):
 
 
 @app.cell
-def _(fixture_factories, mo):
+def _(
+    DealerRegime,
+    OperatorBehaviorAuthorization,
+    OperatorContinuationState,
+    OperatorDeltaContext,
+    OperatorFoundationState,
+    OperatorGammaRegime,
+    OperatorLiquidity,
+    OperatorLockoutState,
+    OperatorLossAvoidanceRisk,
+    OperatorPositionSize,
+    OperatorRuleViolationState,
+    OperatorSetup,
+    OperatorThesisValidity,
+    fixture_factories,
+    mo,
+):
+    operator_input_mode_selector = mo.ui.dropdown(
+        options=[
+            "Manual structured operator inputs",
+            "Fixture/simulation demo inputs",
+        ],
+        value="Manual structured operator inputs",
+        label="Operator input source",
+    )
     fixture_selector = mo.ui.dropdown(
         options=list(fixture_factories),
         value="Clean state",
-        label="Inventory state fixture",
+        label="Simulation/demo preset",
     )
-    return (fixture_selector,)
+    dealer_regime_selector = mo.ui.dropdown(
+        options={"Select dealer regime": None}
+        | {regime.value.replace("_", " ").title(): regime for regime in DealerRegime},
+        value="Select dealer regime",
+        label="Dealer regime",
+    )
+    liquidity_selector = mo.ui.dropdown(
+        options={
+            "Select liquidity": None,
+            "Acceptable": OperatorLiquidity.ACCEPTABLE,
+            "Poor": OperatorLiquidity.POOR,
+            "Ambiguous": OperatorLiquidity.AMBIGUOUS,
+        },
+        value="Select liquidity",
+        label="Liquidity",
+    )
+    thesis_validity_selector = mo.ui.dropdown(
+        options={
+            "Select thesis validity": None,
+            "Valid": OperatorThesisValidity.VALID,
+            "Invalidated": OperatorThesisValidity.INVALIDATED,
+            "Ambiguous": OperatorThesisValidity.AMBIGUOUS,
+        },
+        value="Select thesis validity",
+        label="Thesis validity",
+    )
+    gamma_regime_selector = mo.ui.dropdown(
+        options={
+            "Select gamma regime": None,
+            "Manageable": OperatorGammaRegime.MANAGEABLE,
+            "Unmanageable": OperatorGammaRegime.UNMANAGEABLE,
+            "Ambiguous": OperatorGammaRegime.AMBIGUOUS,
+        },
+        value="Select gamma regime",
+        label="Gamma regime",
+    )
+    delta_context_selector = mo.ui.dropdown(
+        options={
+            "Select delta context": None,
+            "Intentional": OperatorDeltaContext.INTENTIONAL,
+            "Unintentional": OperatorDeltaContext.UNINTENTIONAL,
+            "Ambiguous": OperatorDeltaContext.AMBIGUOUS,
+        },
+        value="Select delta context",
+        label="Delta context",
+    )
+    position_size_selector = mo.ui.dropdown(
+        options={
+            "Select position size": None,
+            "Inside plan": OperatorPositionSize.INSIDE_PLAN,
+            "Exceeds plan": OperatorPositionSize.EXCEEDS_PLAN,
+            "Ambiguous": OperatorPositionSize.AMBIGUOUS,
+        },
+        value="Select position size",
+        label="Position size",
+    )
+    lockout_state_selector = mo.ui.dropdown(
+        options={
+            "Select lockout state": None,
+            "None": OperatorLockoutState.NONE,
+            "Daily": OperatorLockoutState.DAILY,
+            "Weekly": OperatorLockoutState.WEEKLY,
+            "Ambiguous": OperatorLockoutState.AMBIGUOUS,
+        },
+        value="Select lockout state",
+        label="Lockout state",
+    )
+    behavior_authorization_selector = mo.ui.dropdown(
+        options={
+            "Select behavior authorization": None,
+            "Authorized": OperatorBehaviorAuthorization.AUTHORIZED,
+            "Impaired": OperatorBehaviorAuthorization.IMPAIRED,
+            "Ambiguous": OperatorBehaviorAuthorization.AMBIGUOUS,
+        },
+        value="Select behavior authorization",
+        label="Behavior authorization",
+    )
+    rule_violation_selector = mo.ui.dropdown(
+        options={
+            "Select rule violation state": None,
+            "None": OperatorRuleViolationState.NONE,
+            "Occurred": OperatorRuleViolationState.OCCURRED,
+            "Ambiguous": OperatorRuleViolationState.AMBIGUOUS,
+        },
+        value="Select rule violation state",
+        label="Rule violations",
+    )
+    loss_avoidance_selector = mo.ui.dropdown(
+        options={
+            "Select loss-avoidance risk": None,
+            "Absent": OperatorLossAvoidanceRisk.ABSENT,
+            "Present": OperatorLossAvoidanceRisk.PRESENT,
+            "Ambiguous": OperatorLossAvoidanceRisk.AMBIGUOUS,
+        },
+        value="Select loss-avoidance risk",
+        label="Loss-avoidance risk",
+    )
+    foundation_selector = mo.ui.dropdown(
+        options={
+            "Foundation established": OperatorFoundationState.ESTABLISHED,
+            "Foundation missing": OperatorFoundationState.MISSING,
+            "Ambiguous": OperatorFoundationState.AMBIGUOUS,
+        },
+        value="Foundation established",
+        label="Required foundation",
+    )
+    setup_selector = mo.ui.dropdown(
+        options={
+            "None": OperatorSetup.NONE,
+            "Reclaim": OperatorSetup.RECLAIM,
+            "Bounce": OperatorSetup.BOUNCE,
+            "Continuation": OperatorSetup.CONTINUATION,
+            "Ambiguous": OperatorSetup.AMBIGUOUS,
+        },
+        value="None",
+        label="Setup context",
+    )
+    continuation_selector = mo.ui.dropdown(
+        options={
+            "Intact": OperatorContinuationState.INTACT,
+            "Failed": OperatorContinuationState.FAILED,
+            "Ambiguous": OperatorContinuationState.AMBIGUOUS,
+        },
+        value="Intact",
+        label="Continuation state",
+    )
+    return (
+        behavior_authorization_selector,
+        continuation_selector,
+        dealer_regime_selector,
+        delta_context_selector,
+        fixture_selector,
+        foundation_selector,
+        gamma_regime_selector,
+        liquidity_selector,
+        lockout_state_selector,
+        loss_avoidance_selector,
+        operator_input_mode_selector,
+        position_size_selector,
+        rule_violation_selector,
+        setup_selector,
+        thesis_validity_selector,
+    )
 
 
 @app.cell
 def _(
+    behavior_authorization_selector,
+    continuation_selector,
     current_time_window_selector,
     daily_budget_input,
+    dealer_regime_selector,
+    delta_context_selector,
     fixture_selector,
+    foundation_selector,
+    gamma_regime_selector,
+    liquidity_selector,
+    lockout_state_selector,
+    loss_avoidance_selector,
     market_data_mode_selector,
     mo,
+    operator_input_mode_selector,
+    position_size_selector,
+    rule_violation_selector,
+    setup_selector,
+    thesis_validity_selector,
 ):
     mo.hstack(
         [
-            fixture_selector,
+            operator_input_mode_selector,
             current_time_window_selector,
             market_data_mode_selector,
             daily_budget_input,
@@ -1011,32 +1225,123 @@ def _(
         justify="start",
         wrap=True,
     )
+    mo.vstack(
+        [
+            mo.Html(
+                '<div class="app-muted" style="padding:0 4px">'
+                'Manual structured operator inputs are the default authorization '
+                'source. Fixture presets are simulation/demo inputs only.</div>'
+            ),
+            mo.hstack(
+                [dealer_regime_selector, liquidity_selector, thesis_validity_selector],
+                gap=1,
+                wrap=True,
+            ),
+            mo.hstack(
+                [gamma_regime_selector, delta_context_selector, position_size_selector],
+                gap=1,
+                wrap=True,
+            ),
+            mo.hstack(
+                [
+                    lockout_state_selector,
+                    behavior_authorization_selector,
+                    rule_violation_selector,
+                    loss_avoidance_selector,
+                ],
+                gap=1,
+                wrap=True,
+            ),
+            mo.hstack(
+                [foundation_selector, setup_selector, continuation_selector],
+                gap=1,
+                wrap=True,
+            ),
+            mo.hstack([fixture_selector], gap=1, wrap=True),
+        ]
+    )
     return
 
 
 @app.cell
-def _(fixture_factories, fixture_selector):
-    selected_state = fixture_factories[fixture_selector.value]()
-    return (selected_state,)
+def _(
+    OperatorInputState,
+    behavior_authorization_selector,
+    continuation_selector,
+    current_time_window_selector,
+    dealer_regime_selector,
+    delta_context_selector,
+    fixture_factories,
+    fixture_selector,
+    foundation_selector,
+    gamma_regime_selector,
+    liquidity_selector,
+    lockout_state_selector,
+    loss_avoidance_selector,
+    operator_input_from_inventory_state,
+    operator_input_mode_selector,
+    position_size_selector,
+    rule_violation_selector,
+    setup_selector,
+    thesis_validity_selector,
+):
+    operator_input_source_label = operator_input_mode_selector.value
+    if operator_input_source_label == "Fixture/simulation demo inputs":
+        operator_input_state = operator_input_from_inventory_state(
+            fixture_factories[fixture_selector.value](),
+            simulation_label=f"Fixture/simulation demo: {fixture_selector.value}",
+        )
+    else:
+        operator_input_state = OperatorInputState(
+            time_window=current_time_window_selector.value,
+            dealer_regime=dealer_regime_selector.value,
+            liquidity=liquidity_selector.value,
+            thesis_validity=thesis_validity_selector.value,
+            gamma_regime=gamma_regime_selector.value,
+            delta_context=delta_context_selector.value,
+            position_size=position_size_selector.value,
+            lockout_state=lockout_state_selector.value,
+            behavior_authorization=behavior_authorization_selector.value,
+            rule_violations=rule_violation_selector.value,
+            loss_avoidance_risk=loss_avoidance_selector.value,
+            foundation_state=foundation_selector.value,
+            setup=setup_selector.value,
+            continuation_state=continuation_selector.value,
+        )
+    return operator_input_source_label, operator_input_state
 
 
 @app.cell
 def _(
-    evaluate_rule_engine_authorization,
+    evaluate_operator_input_authorization,
+    normalize_operator_input_state,
+    operator_input_state,
     option_chain_toggle_result,
-    selected_state,
     validate_inventory_state,
 ):
-    validation_result = validate_inventory_state(selected_state)
-    rule_decision = evaluate_rule_engine_authorization(
-        selected_state,
+    rule_decision, operator_input_validation = evaluate_operator_input_authorization(
+        operator_input_state,
         market_data_state=option_chain_toggle_result.provider_state,
     )
-    return rule_decision, validation_result
+    selected_state = None
+    validation_result = None
+    if operator_input_validation.is_valid:
+        selected_state = normalize_operator_input_state(operator_input_state).inventory_state
+        validation_result = validate_inventory_state(selected_state)
+    return operator_input_validation, rule_decision, selected_state, validation_result
 
 
 @app.cell
-def _(html_escape, mo, rule_decision, selected_state, validation_result):
+def _(
+    html_escape,
+    mo,
+    operator_input_source_label,
+    operator_input_state,
+    operator_input_validation,
+    rule_decision,
+    selected_state,
+    validation_result,
+):
     _sev = rule_decision.severity.value
     _action_status = rule_decision.action_status.value
     _sev_meta = {
@@ -1184,50 +1489,102 @@ def _(html_escape, mo, rule_decision, selected_state, validation_result):
         + '</div>'
     ) if _reasoning_parts else ""
 
-    _s = selected_state
-    _ok = "✅"
-    _fail = "❌"
-    _stop = "\U0001f6d1"
-    _thesis_valid = _ok if _s.position.thesis_valid else _fail
-    _behavior_auth = _ok if _s.behavior.behavior_authorized else _fail
-    _lockout = (
-        _stop
-        if _s.behavior.daily_lockout_active or _s.behavior.weekly_lockout_active
-        else f"{_ok} None"
-    )
-    _state_html = (
-        '<div class="app-grid-3">'
-        '<div class="app-stat"><div class="app-stat__label">Dealer regime</div>'
-        f'<div class="app-stat__value">{_s.market.dealer_regime.value}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">Time window</div>'
-        f'<div class="app-stat__value">{_s.market.time_window.value}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">Structure</div>'
-        f'<div class="app-stat__value">{_s.position.structure.value}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">Thesis valid</div>'
-        f'<div class="app-stat__value">{_thesis_valid}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">Behavior auth</div>'
-        f'<div class="app-stat__value">{_behavior_auth}</div></div>'
-        '<div class="app-stat"><div class="app-stat__label">Lockout</div>'
-        f'<div class="app-stat__value">{_lockout}</div></div>'
+    _input_source_kind = "blocked" if operator_input_state.is_simulation else "allowed"
+    _input_source_html = (
+        '<div class="app-grid-3" style="margin-bottom:10px">'
+        '<div class="app-stat"><div class="app-stat__label">Input source</div>'
+        f'<div class="app-stat__value">{html_escape(operator_input_source_label)}</div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Simulation label</div>'
+        f'<div class="app-stat__value"><span class="app-chip app-chip--{_input_source_kind}">'
+        f'{html_escape(operator_input_state.simulation_label or "live operator input")}</span></div></div>'
+        '<div class="app-stat"><div class="app-stat__label">Input completeness</div>'
+        f'<div class="app-stat__value">{html_escape("complete" if operator_input_validation.is_valid else "blocked")}</div></div>'
         '</div>'
     )
 
+    def _issue_list(issues, empty_label):
+        if not issues:
+            return f'<span class="app-muted">{html_escape(empty_label)}</span>'
+        return (
+            '<ul class="app-list">'
+            + "".join(
+                f"<li>{html_escape(issue.field_name)}: {html_escape(issue.message)}</li>"
+                for issue in issues
+            )
+            + "</ul>"
+        )
+
+    _input_defects_html = (
+        '<div class="app-grid-3" style="margin-bottom:10px">'
+        '<div><div class="app-stat__label">Missing inputs</div>'
+        f'{_issue_list(operator_input_validation.missing_inputs, "none")}</div>'
+        '<div><div class="app-stat__label">Invalid inputs</div>'
+        f'{_issue_list(operator_input_validation.invalid_inputs, "none")}</div>'
+        '<div><div class="app-stat__label">Blocking authorization defects</div>'
+        f'{_issue_list(operator_input_validation.blocking_defects, "none")}</div>'
+        '</div>'
+    )
+
+    if selected_state is None:
+        _state_html = (
+            '<div class="app-muted">'
+            'Inventory state is unavailable until structured operator inputs are complete.'
+            '</div>'
+        )
+    else:
+        _s = selected_state
+        _thesis_valid = "yes" if _s.position.thesis_valid else "no"
+        _behavior_auth = "yes" if _s.behavior.behavior_authorized else "no"
+        _lockout = (
+            "active"
+            if _s.behavior.daily_lockout_active or _s.behavior.weekly_lockout_active
+            else "none"
+        )
+        _state_html = (
+            '<div class="app-grid-3">'
+            '<div class="app-stat"><div class="app-stat__label">Dealer regime</div>'
+            f'<div class="app-stat__value">{_s.market.dealer_regime.value}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Time window</div>'
+            f'<div class="app-stat__value">{_s.market.time_window.value}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Structure</div>'
+            f'<div class="app-stat__value">{_s.position.structure.value}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Thesis valid</div>'
+            f'<div class="app-stat__value">{_thesis_valid}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Behavior auth</div>'
+            f'<div class="app-stat__value">{_behavior_auth}</div></div>'
+            '<div class="app-stat"><div class="app-stat__label">Lockout</div>'
+            f'<div class="app-stat__value">{_lockout}</div></div>'
+            '</div>'
+        )
+
     _val_elements = []
-    for _msg in validation_result.messages:
-        _kind = {"blocker": "danger", "warning": "warn", "info": "info"}.get(
-            _msg.severity.value, "info"
-        )
+    if validation_result is None:
         _val_elements.append(
-            mo.callout(mo.md(f"**{_msg.code}** — {_msg.message}"), kind=_kind)
+            mo.callout(
+                mo.md("Inventory validation is blocked until operator inputs are complete."),
+                kind="danger",
+            )
         )
-    if not _val_elements:
-        _val_elements.append(
-            mo.callout(mo.md("No validation issues."), kind="success")
-        )
+    else:
+        for _msg in validation_result.messages:
+            _kind = {"blocker": "danger", "warning": "warn", "info": "info"}.get(
+                _msg.severity.value, "info"
+            )
+            _val_elements.append(
+                mo.callout(mo.md(f"**{_msg.code}** - {_msg.message}"), kind=_kind)
+            )
+        if not _val_elements:
+            _val_elements.append(mo.callout(mo.md("No validation issues."), kind="success"))
 
     mo.vstack(
         [
-            mo.Html(_severity_html + _actions_html + _reasoning_html),
+            mo.Html(
+                _input_source_html
+                + _input_defects_html
+                + _severity_html
+                + _actions_html
+                + _reasoning_html
+            ),
             mo.Html(
                 '<div class="app-stat__label" '
                 'style="margin:14px 0 6px;padding:0 4px">Inventory state</div>'

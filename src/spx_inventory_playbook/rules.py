@@ -4,6 +4,13 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .adapters.option_chain_provider import MarketDataProviderState
+from .operator_inputs import (
+    OperatorInputValidation,
+    OperatorInputState,
+    OperatorSetup,
+    normalize_operator_input_state,
+    validate_operator_input_state,
+)
 from .validators import (
     Action,
     InventoryState,
@@ -343,6 +350,40 @@ def evaluate_rule_engine_authorization(
     )
 
 
+def evaluate_operator_input_authorization(
+    operator_input: OperatorInputState,
+    *,
+    market_data_state: MarketDataProviderState | None = None,
+) -> tuple[RuleDecision, OperatorInputValidation]:
+    """Validate structured operator input and evaluate the R6 rule decision."""
+
+    validation = validate_operator_input_state(operator_input)
+    if not validation.is_valid:
+        return (
+            _operator_input_fail_closed_decision(
+                validation.reason_codes,
+                market_data_state=market_data_state,
+            ),
+            validation,
+        )
+
+    normalized = normalize_operator_input_state(operator_input)
+    context = RuleAuthorizationContext(
+        market_data_state=market_data_state,
+        foundation_established=normalized.foundation_established,
+        setup=_operator_setup_to_rule_setup(normalized.setup),
+        continuation_failed=normalized.continuation_failed,
+    )
+    return (
+        evaluate_rule_engine_authorization(
+            normalized.inventory_state,
+            market_data_state=market_data_state,
+            context=context,
+        ),
+        validation,
+    )
+
+
 def _market_data_override_decision(
     market_data_state: MarketDataProviderState | None,
     inventory_decision: RuleDecision,
@@ -412,6 +453,57 @@ def _market_data_override_decision(
         required_confirmation="load_fresh_live_market_data",
         warnings=inventory_decision.warnings,
     )
+
+
+def _operator_input_fail_closed_decision(
+    reason_codes: tuple[str, ...],
+    *,
+    market_data_state: MarketDataProviderState | None,
+) -> RuleDecision:
+    return _decision(
+        action_status=ActionStatus.BLOCKED,
+        allowed_actions=LIVE_ACTION_STOP_SET,
+        blocked_actions=set(Action) - LIVE_ACTION_STOP_SET,
+        allowed_structures=set(),
+        blocked_structures=_all_structures(),
+        size_tier=SizeTier.FLATTEN_ONLY,
+        invalidation_state=InvalidationState.UNKNOWN,
+        severity=DecisionSeverity.BLOCKED,
+        reasons=[
+            "Operator inputs are missing, ambiguous, or invalid; authorization fails closed.",
+            *reason_codes,
+        ],
+        required_confirmations=("resolve_operator_input_defects",),
+        market_data_state=market_data_state,
+        data_source_classification=_data_source_classification_for_market_data_state(
+            market_data_state
+        ),
+    )
+
+
+def _data_source_classification_for_market_data_state(
+    market_data_state: MarketDataProviderState | None,
+) -> DataSourceClassification:
+    if market_data_state is MarketDataProviderState.FIXTURE:
+        return DataSourceClassification.FIXTURE_SIMULATION
+    if market_data_state in {
+        MarketDataProviderState.LIVE_FRESH,
+        MarketDataProviderState.LIVE_STALE,
+        MarketDataProviderState.LIVE_UNAVAILABLE,
+        MarketDataProviderState.LIVE_PARSE_ERROR,
+    }:
+        return DataSourceClassification.LIVE
+    return DataSourceClassification.UNKNOWN
+
+
+def _operator_setup_to_rule_setup(setup: OperatorSetup) -> RuleSetup:
+    if setup is OperatorSetup.RECLAIM:
+        return RuleSetup.RECLAIM
+    if setup is OperatorSetup.BOUNCE:
+        return RuleSetup.BOUNCE
+    if setup is OperatorSetup.CONTINUATION:
+        return RuleSetup.CONTINUATION
+    return RuleSetup.NONE
 
 
 def _closed_market_data_decision(

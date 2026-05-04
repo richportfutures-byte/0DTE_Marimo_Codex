@@ -286,6 +286,8 @@ Make operator inputs deliberate, validated, and auditable across session setup, 
 - Confirmations are explicit where data quality or risk state requires them.
 - App text preserves decision-support boundaries.
 - Inputs that affect inventory or rule outcomes are audit-preserving.
+- The notebook's default authorization workflow consumes structured operator inputs; missing, ambiguous, or invalid inputs fail closed before rule evaluation proceeds.
+- Fixture presets remain labeled simulation/demo inputs and cannot become live authorization.
 
 ### Dependencies
 

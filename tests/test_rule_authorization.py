@@ -214,7 +214,7 @@ def test_loss_avoidance_risk_requires_confirmation_and_blocks_complex_adjustment
 def test_notebook_operator_authorization_uses_rule_decision_object() -> None:
     source = NOTEBOOK_PATH.read_text(encoding="utf-8")
 
-    assert "evaluate_rule_engine_authorization" in source
+    assert "evaluate_operator_input_authorization" in source
     assert "market_data_state=option_chain_toggle_result.provider_state" in source
     assert "Can I act?" in source
     assert "Allowed" in source

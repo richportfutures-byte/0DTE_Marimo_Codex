@@ -12,6 +12,7 @@
 
 - `src/spx_inventory_playbook/reference.py`: compact professional reference cards.
 - `src/spx_inventory_playbook/validators.py`: inventory state dataclasses and validation messages.
+- `src/spx_inventory_playbook/operator_inputs.py`: typed R7 operator input object, validation, and normalization into inventory/rule context.
 - `src/spx_inventory_playbook/rules.py`: deterministic R6 authorization layer. Its top-level `RuleDecision` answers whether the operator can act, what is allowed or blocked, required confirmations, reasons, warnings, market-data state, and fixture/live classification.
 - `src/spx_inventory_playbook/fixtures.py`: abstract fixture states for tests and UI smoke paths.
 - `src/spx_inventory_playbook/calculators.py`: pure hedge and cost/friction calculators.
@@ -41,6 +42,7 @@ uv run marimo run notebooks/spx_inventory_app.py
 - Greeks, IV, bid/ask, strikes, expiries, marks, fills, and P/L must never be fabricated.
 - Missing, stale, partial, or unverifiable data must fail closed, degrade confidence, or require manual confirmation.
 - Operator-facing authorization in the notebook must derive from the rule-engine `RuleDecision`; fixture data is simulation-only and cannot grant live authorization.
+- The Decision Console default path is structured operator input; fixture presets are available only as labeled simulation/demo inputs and still pass through validation.
 - The app may provide bounded decision support: no-trade states, structure ranking, invalidation logic, risk warnings, and trade-plan checks.
 - The app must not place trades, route orders, or present itself as an automated execution system.
 - The app supports operator judgment; it does not replace trader responsibility.
