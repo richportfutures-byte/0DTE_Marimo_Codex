@@ -3,6 +3,7 @@
 __all__ = [
     "calculators",
     "fixtures",
+    "local_state",
     "playbook",
     "positions",
     "prompts",

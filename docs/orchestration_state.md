@@ -2,10 +2,10 @@
 
 ## Current Position
 
-- Current roadmap position: R2 complete
-- Last completed step: R2 Product Contract and Session Lifecycle
-- Current step: session lifecycle product contract implemented and verified
-- Next planned step: R3 Durable Local State
+- Current roadmap position: R3 complete
+- Last completed step: R3 Durable Local State
+- Current step: durable local state foundation implemented and verified
+- Next planned step: R4 Inventory Ledger
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
@@ -262,3 +262,109 @@ Invalid transitions fail closed by returning the same state, `allowed=False`, an
   - Result: command exited 0 with no stdout/stderr.
 
 R2 is complete. The next step is R3 Durable Local State. Do not start R3 until explicitly requested.
+
+## R3 Durable Local State - Results
+
+- Date/time in local shell: Sun May 3 23:28:13 EDT 2026
+- Current roadmap position: R3 complete
+- Next step: R4 Inventory Ledger
+
+### Files Changed
+
+- `src/spx_inventory_playbook/local_state.py`
+- `tests/test_local_state.py`
+- `src/spx_inventory_playbook/__init__.py`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Added a deterministic local file-backed state foundation for personal workstation sessions. The module computes local state paths, creates the expected directory tree on request, validates frozen session metadata and lifecycle event records, serializes records through deterministic JSON dictionaries, atomically writes session metadata, and appends session lifecycle events as JSONL.
+
+This is not the R4 inventory ledger. It stores session metadata and lifecycle events only. It has no Marimo, market-data-provider, live API, credential-file, broker, database, background-process, order-routing, or automated-execution dependency.
+
+### Storage Paths
+
+- Root: `.state`
+- Session metadata: `.state/sessions/{session_id}.json`
+- Session events: `.state/events/{session_id}.events.jsonl`
+- Snapshots directory reserved for later durable state work: `.state/snapshots`
+- Exports directory reserved for later export work: `.state/exports`
+
+### Safety Rules Implemented
+
+- `build_local_state_paths` computes paths without creating directories.
+- `ensure_local_state_dirs` creates only the configured root-local directory tree.
+- Session IDs and event IDs must be non-empty and path-safe.
+- IDs containing `/`, `\`, `..`, null bytes, or leading/trailing whitespace are rejected.
+- Store paths are checked so writes remain inside the configured root.
+- Session metadata writes use a same-directory temp file followed by replace.
+- Session events append one deterministic JSON object per line.
+- Corrupt JSON and malformed records raise safe `ValueError` messages without echoing raw file content.
+- Unknown JSON fields are ignored.
+- Missing required fields and malformed field types raise `ValueError`.
+- `data_mode` preserves fixture/live distinction with allowed values: `none`, `fixture`, `live`, `mixed`, `unknown`.
+
+### Redaction Behavior
+
+`redact_sensitive_text` redacts obvious credential-like substrings before storing notes and summaries. It covers case-insensitive appearances of `access_token=`, `refresh_token=`, `authorization:`, `bearer `, `client_secret=`, `api_key=`, and `token=`, replacing sensitive values with `[REDACTED]`.
+
+### Tests Added
+
+- Path computation does not create directories.
+- Directory initialization creates root, sessions, events, snapshots, and exports directories.
+- Metadata and event serialization round trips.
+- Extra JSON fields are ignored.
+- Missing required fields raise `ValueError`.
+- Malformed field types raise `ValueError`.
+- Invalid session and event IDs are rejected.
+- Metadata write/read round trip.
+- Event append/read round trip.
+- Events remain append-only and ordered.
+- Path traversal cannot escape root.
+- Corrupt metadata JSON raises safe `ValueError`.
+- Corrupt event JSONL raises safe `ValueError`.
+- Redaction catches required credential-like substrings.
+- Persisted notes and summaries are redacted.
+- No Marimo import is required.
+- No live API or token-file access is performed.
+
+### Commands Run
+
+- `git status --short`
+- `git log -5 --oneline`
+- `uv run pytest`
+- `uv run ruff check .`
+- `uv run python notebooks/spx_inventory_app.py`
+- `sed -n '1,260p' docs/founder_ready_roadmap.md`
+- `sed -n '1,340p' docs/orchestration_state.md`
+- `sed -n '1,260p' src/spx_inventory_playbook/session_lifecycle.py`
+- `sed -n '1,320p' tests/test_session_lifecycle.py`
+- `cat src/spx_inventory_playbook/__init__.py`
+- `uv run pytest -q tests/test_local_state.py`
+- `uv run ruff check src/spx_inventory_playbook/local_state.py tests/test_local_state.py src/spx_inventory_playbook/__init__.py`
+- `date`
+- `uv run pytest`
+- `uv run ruff check .`
+- `uv run python notebooks/spx_inventory_app.py`
+
+### Verification Results
+
+- PASS: baseline `uv run pytest`
+  - Result before R3 edits: 375 passed.
+- PASS: baseline `uv run ruff check .`
+  - Result before R3 edits: all checks passed.
+- PASS: baseline `uv run python notebooks/spx_inventory_app.py`
+  - Result before R3 edits: command exited 0 with no stdout/stderr.
+- PASS: targeted `uv run pytest -q tests/test_local_state.py`
+  - Result: 64 passed.
+- PASS: targeted `uv run ruff check src/spx_inventory_playbook/local_state.py tests/test_local_state.py src/spx_inventory_playbook/__init__.py`
+  - Result: all checks passed.
+
+- PASS: post-edit `uv run pytest`
+  - Result: 439 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+
+R3 is complete. The next step is R4 Inventory Ledger. Do not start R4 until explicitly requested.
