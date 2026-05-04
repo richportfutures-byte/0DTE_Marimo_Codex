@@ -2,20 +2,16 @@
 
 ## Current Position
 
-- Current roadmap position: R5 complete
-- Last completed step: R5 Market Data Provider Unification
-- Current step: market data provider boundary unified and verified
-- Next planned step: R6 Rule Engine as Main Authorization Layer
+- Current roadmap position: R7 complete
+- Last completed step: R7 Operator Input Workflow
+- Current step: operator input workflow verified with audit evidence contract
+- Next planned step: R8 Daily Export Bundle
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
-- Documentation-only for the current step.
-- Do not modify source code.
-- Do not modify tests.
-- Do not modify notebook behavior.
-- Do not modify fixtures.
-- Do not modify package configuration.
+- One roadmap prompt at a time.
+- Do not start R8 until R7 is verified and committed.
 - Do not call live APIs.
 - Do not read or print token files.
 - Do not introduce commercial SaaS requirements.
@@ -588,3 +584,58 @@ The explicit provider states are:
   - Result: command exited 0 with no stdout/stderr.
 
 R5 is complete. The next step is R6 Rule Engine as Main Authorization Layer. Do not start R6 until explicitly requested.
+
+## R6 Rule Engine as Main Authorization Layer - Migration Baseline
+
+- Commit: `4c1aa91 Make rule engine primary authorization layer`
+- Status at R7 continuation: committed baseline verified by the R7 preflight commands on Mon May 4 2026.
+- Summary: the notebook's operator-facing authorization view reads from the typed rule-engine `RuleDecision`, and fixture, stale, unavailable, parse-error, missing, or ambiguous market-data states fail closed or restrict live action.
+
+## R7 Operator Input Workflow - Results
+
+- Date/time in local shell: Mon May 4 01:01:50 EDT 2026
+- Current roadmap position: R7 complete
+- Next step: R8 Daily Export Bundle
+
+### Files Changed
+
+- `src/spx_inventory_playbook/operator_inputs.py`
+- `src/spx_inventory_playbook/rules.py`
+- `src/spx_inventory_playbook/__init__.py`
+- `tests/test_operator_inputs.py`
+- `docs/HANDOFF.md`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Extended the structured R7 operator-input workflow with serializable audit evidence for each authorization pass. The audit contract distinguishes operator-entered data, fixture simulation data, observed market-data state, calculated normalization, and rule decisions. It preserves validation reason codes, rule reasons, required confirmations, action status, market-data state, fixture/live classification, simulation labels, and the final `can_act` answer.
+
+The implementation remains pure and local: it does not persist files, create export bundles, call live APIs, read token files, place trades, route orders, submit broker instructions, or imply automated execution.
+
+### Tests Added
+
+- Operator-input audit record JSON roundtrip.
+- Audit record preserves fail-closed validation defects and required confirmations.
+- Fixture-derived operator inputs remain simulation-only in audit evidence.
+- Path-unsafe audit/session IDs are rejected.
+
+### Verification Results
+
+- PASS: baseline `uv run pytest`
+  - Result before R7 edits: 525 passed.
+- PASS: baseline `uv run ruff check .`
+  - Result before R7 edits: all checks passed.
+- PASS: baseline `uv run python notebooks/spx_inventory_app.py`
+  - Result before R7 edits: command exited 0 with no stdout/stderr.
+- PASS: targeted `uv run pytest -q tests/test_operator_inputs.py tests/test_rule_authorization.py`
+  - Result: 38 passed.
+- PASS: targeted `uv run ruff check src/spx_inventory_playbook/operator_inputs.py src/spx_inventory_playbook/rules.py tests/test_operator_inputs.py`
+  - Result: all checks passed.
+- PASS: post-edit `uv run pytest`
+  - Result: 529 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+
+R7 is complete. Do not start R8 until explicitly requested.

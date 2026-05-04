@@ -12,7 +12,7 @@
 
 - `src/spx_inventory_playbook/reference.py`: compact professional reference cards.
 - `src/spx_inventory_playbook/validators.py`: inventory state dataclasses and validation messages.
-- `src/spx_inventory_playbook/operator_inputs.py`: typed R7 operator input object, validation, and normalization into inventory/rule context.
+- `src/spx_inventory_playbook/operator_inputs.py`: typed R7 operator input object, validation, normalization into inventory/rule context, and serializable audit evidence for authorization passes.
 - `src/spx_inventory_playbook/rules.py`: deterministic R6 authorization layer. Its top-level `RuleDecision` answers whether the operator can act, what is allowed or blocked, required confirmations, reasons, warnings, market-data state, and fixture/live classification.
 - `src/spx_inventory_playbook/fixtures.py`: abstract fixture states for tests and UI smoke paths.
 - `src/spx_inventory_playbook/calculators.py`: pure hedge and cost/friction calculators.

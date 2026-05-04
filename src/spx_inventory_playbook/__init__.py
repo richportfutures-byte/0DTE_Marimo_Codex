@@ -5,6 +5,7 @@ __all__ = [
     "fixtures",
     "inventory_ledger",
     "local_state",
+    "operator_inputs",
     "playbook",
     "positions",
     "prompts",

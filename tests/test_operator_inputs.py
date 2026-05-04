@@ -1,8 +1,12 @@
 from pathlib import Path
 
+import pytest
+
 from spx_inventory_playbook.adapters.option_chain_provider import MarketDataProviderState
 from spx_inventory_playbook.fixtures import clean_state, state_with_overrides
 from spx_inventory_playbook.operator_inputs import (
+    OperatorInputAuditDataKind,
+    OperatorInputAuditEventType,
     OperatorBehaviorAuthorization,
     OperatorContinuationState,
     OperatorDeltaContext,
@@ -17,6 +21,8 @@ from spx_inventory_playbook.operator_inputs import (
     OperatorSetup,
     OperatorThesisValidity,
     normalize_operator_input_state,
+    operator_input_audit_record_from_json_dict,
+    operator_input_audit_record_to_json_dict,
     operator_input_from_inventory_state,
 )
 from spx_inventory_playbook.rules import (
@@ -24,6 +30,7 @@ from spx_inventory_playbook.rules import (
     DataSourceClassification,
     SizeTier,
     evaluate_operator_input_authorization,
+    evaluate_operator_input_authorization_with_audit,
 )
 from spx_inventory_playbook.validators import Action, DealerRegime, TimeWindow
 
@@ -247,3 +254,81 @@ def test_notebook_facing_workflow_consumes_rule_decision_object() -> None:
     assert "Blocking authorization defects" in source
     assert "rule_decision.action_status.value" in source
     assert "Fixture/simulation demo inputs" in source
+
+
+def test_operator_input_audit_record_round_trips_authorization_evidence() -> None:
+    decision, validation, audit_record = evaluate_operator_input_authorization_with_audit(
+        valid_operator_input(),
+        market_data_state=MarketDataProviderState.LIVE_FRESH,
+        audit_id="audit-001",
+        session_id="session-001",
+        created_at="2026-05-04T09:45:00-04:00",
+    )
+
+    payload = operator_input_audit_record_to_json_dict(audit_record)
+    restored = operator_input_audit_record_from_json_dict(payload)
+
+    assert restored == audit_record
+    assert audit_record.event_type is OperatorInputAuditEventType.INPUTS_EVALUATED
+    assert OperatorInputAuditDataKind.OPERATOR_ENTERED in audit_record.data_kinds
+    assert OperatorInputAuditDataKind.OBSERVED_MARKET_DATA in audit_record.data_kinds
+    assert OperatorInputAuditDataKind.CALCULATED_NORMALIZATION in audit_record.data_kinds
+    assert OperatorInputAuditDataKind.RULE_DECISION in audit_record.data_kinds
+    assert audit_record.action_status == decision.action_status.value
+    assert audit_record.can_act is decision.can_act
+    assert audit_record.validation_reason_codes == validation.reason_codes
+    assert audit_record.market_data_state == MarketDataProviderState.LIVE_FRESH.value
+    assert audit_record.data_source_classification == DataSourceClassification.LIVE.value
+
+
+def test_operator_input_audit_record_preserves_fail_closed_defects() -> None:
+    _, validation, audit_record = evaluate_operator_input_authorization_with_audit(
+        valid_operator_input(dealer_regime=None),
+        market_data_state=MarketDataProviderState.LIVE_FRESH,
+        audit_id="audit-002",
+        session_id="session-001",
+        created_at="2026-05-04T09:46:00-04:00",
+    )
+
+    assert validation.reason_codes == ("DEALER_REGIME_MISSING",)
+    assert audit_record.validation_reason_codes == ("DEALER_REGIME_MISSING",)
+    assert audit_record.action_status == ActionStatus.BLOCKED.value
+    assert audit_record.can_act is False
+    assert "resolve_operator_input_defects" in audit_record.required_confirmations
+
+
+def test_fixture_operator_input_audit_record_remains_simulation_only() -> None:
+    operator_input = operator_input_from_inventory_state(
+        state_with_overrides(
+            clean_state(),
+            **{"market.dealer_regime": DealerRegime.POSITIVE_GEX},
+        ),
+        simulation_label="Fixture/simulation demo: Clean state",
+    )
+
+    _, _, audit_record = evaluate_operator_input_authorization_with_audit(
+        operator_input,
+        market_data_state=MarketDataProviderState.FIXTURE,
+        audit_id="audit-003",
+        session_id="session-001",
+        created_at="2026-05-04T09:47:00-04:00",
+    )
+
+    assert OperatorInputAuditDataKind.FIXTURE_SIMULATION in audit_record.data_kinds
+    assert audit_record.action_status == ActionStatus.SIMULATION_ONLY.value
+    assert audit_record.can_act is False
+    assert audit_record.simulation_label == "Fixture/simulation demo: Clean state"
+    assert audit_record.data_source_classification == (
+        DataSourceClassification.FIXTURE_SIMULATION.value
+    )
+
+
+def test_operator_input_audit_record_rejects_path_unsafe_ids() -> None:
+    with pytest.raises(ValueError, match="safe identifier"):
+        evaluate_operator_input_authorization_with_audit(
+            valid_operator_input(),
+            market_data_state=MarketDataProviderState.LIVE_FRESH,
+            audit_id="../audit-001",
+            session_id="session-001",
+            created_at="2026-05-04T09:48:00-04:00",
+        )

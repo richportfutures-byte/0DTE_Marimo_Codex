@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Mapping
 
 from .validators import (
     BehaviorContext,
@@ -21,6 +22,23 @@ class OperatorInputIssueSeverity(Enum):
     AMBIGUOUS = "ambiguous"
     INVALID = "invalid"
     BLOCKING = "blocking"
+
+
+class OperatorInputAuditEventType(Enum):
+    INPUTS_EVALUATED = "operator_inputs_evaluated"
+
+
+class OperatorInputSourceKind(Enum):
+    OPERATOR_ENTERED = "operator_entered"
+    FIXTURE_SIMULATION = "fixture_simulation"
+
+
+class OperatorInputAuditDataKind(Enum):
+    OPERATOR_ENTERED = "operator_entered_data"
+    FIXTURE_SIMULATION = "fixture_simulation_data"
+    OBSERVED_MARKET_DATA = "observed_market_data"
+    CALCULATED_NORMALIZATION = "calculated_normalization"
+    RULE_DECISION = "rule_decision"
 
 
 class OperatorLiquidity(Enum):
@@ -169,6 +187,51 @@ class OperatorInputValidation:
 
 
 @dataclass(frozen=True)
+class OperatorInputAuditRecord:
+    """Serializable audit evidence for an operator-input authorization pass."""
+
+    audit_id: str
+    session_id: str
+    created_at: str
+    event_type: OperatorInputAuditEventType
+    input_source: OperatorInputSourceKind
+    data_kinds: tuple[OperatorInputAuditDataKind, ...]
+    validation_reason_codes: tuple[str, ...]
+    rule_reasons: tuple[str, ...]
+    required_confirmations: tuple[str, ...]
+    action_status: str
+    market_data_state: str
+    data_source_classification: str
+    can_act: bool
+    simulation_label: str | None = None
+    summary: str = ""
+
+    def __post_init__(self) -> None:
+        _require_safe_identifier(self.audit_id, "audit_id")
+        _require_safe_identifier(self.session_id, "session_id")
+        _require_non_empty_string(self.created_at, "created_at")
+        if not isinstance(self.event_type, OperatorInputAuditEventType):
+            raise ValueError("event_type must be an OperatorInputAuditEventType.")
+        if not isinstance(self.input_source, OperatorInputSourceKind):
+            raise ValueError("input_source must be an OperatorInputSourceKind.")
+        _require_enum_tuple(self.data_kinds, OperatorInputAuditDataKind, "data_kinds")
+        _require_string_tuple(self.validation_reason_codes, "validation_reason_codes")
+        _require_string_tuple(self.rule_reasons, "rule_reasons")
+        _require_string_tuple(self.required_confirmations, "required_confirmations")
+        _require_non_empty_string(self.action_status, "action_status")
+        _require_non_empty_string(self.market_data_state, "market_data_state")
+        _require_non_empty_string(
+            self.data_source_classification,
+            "data_source_classification",
+        )
+        if not isinstance(self.can_act, bool):
+            raise ValueError("can_act must be a boolean.")
+        if self.simulation_label is not None:
+            _require_non_empty_string(self.simulation_label, "simulation_label")
+        _require_string(self.summary, "summary")
+
+
+@dataclass(frozen=True)
 class NormalizedOperatorState:
     inventory_state: InventoryState
     foundation_established: bool
@@ -296,6 +359,117 @@ def normalize_operator_input_state(state: OperatorInputState) -> NormalizedOpera
     )
 
 
+def build_operator_input_audit_record(
+    operator_input: OperatorInputState,
+    validation: OperatorInputValidation,
+    *,
+    audit_id: str,
+    session_id: str,
+    created_at: str,
+    action_status: str,
+    can_act: bool,
+    market_data_state: str,
+    data_source_classification: str,
+    rule_reasons: tuple[str, ...] = (),
+    required_confirmations: tuple[str, ...] = (),
+    summary: str = "",
+) -> OperatorInputAuditRecord:
+    """Build local audit evidence without persisting or routing anything."""
+
+    input_source = (
+        OperatorInputSourceKind.FIXTURE_SIMULATION
+        if operator_input.is_simulation
+        else OperatorInputSourceKind.OPERATOR_ENTERED
+    )
+    input_data_kind = (
+        OperatorInputAuditDataKind.FIXTURE_SIMULATION
+        if operator_input.is_simulation
+        else OperatorInputAuditDataKind.OPERATOR_ENTERED
+    )
+    return OperatorInputAuditRecord(
+        audit_id=audit_id,
+        session_id=session_id,
+        created_at=created_at,
+        event_type=OperatorInputAuditEventType.INPUTS_EVALUATED,
+        input_source=input_source,
+        data_kinds=(
+            input_data_kind,
+            OperatorInputAuditDataKind.OBSERVED_MARKET_DATA,
+            OperatorInputAuditDataKind.CALCULATED_NORMALIZATION,
+            OperatorInputAuditDataKind.RULE_DECISION,
+        ),
+        validation_reason_codes=validation.reason_codes,
+        rule_reasons=rule_reasons,
+        required_confirmations=required_confirmations,
+        action_status=action_status,
+        market_data_state=market_data_state,
+        data_source_classification=data_source_classification,
+        can_act=can_act,
+        simulation_label=operator_input.simulation_label,
+        summary=summary,
+    )
+
+
+def operator_input_audit_record_to_json_dict(
+    record: OperatorInputAuditRecord,
+) -> dict[str, object]:
+    return {
+        "action_status": record.action_status,
+        "audit_id": record.audit_id,
+        "can_act": record.can_act,
+        "created_at": record.created_at,
+        "data_kinds": [kind.value for kind in record.data_kinds],
+        "data_source_classification": record.data_source_classification,
+        "event_type": record.event_type.value,
+        "input_source": record.input_source.value,
+        "market_data_state": record.market_data_state,
+        "required_confirmations": list(record.required_confirmations),
+        "rule_reasons": list(record.rule_reasons),
+        "session_id": record.session_id,
+        "simulation_label": record.simulation_label,
+        "summary": record.summary,
+        "validation_reason_codes": list(record.validation_reason_codes),
+    }
+
+
+def operator_input_audit_record_from_json_dict(
+    payload: Mapping[str, object],
+) -> OperatorInputAuditRecord:
+    return OperatorInputAuditRecord(
+        audit_id=_required_json_string(payload, "audit_id"),
+        session_id=_required_json_string(payload, "session_id"),
+        created_at=_required_json_string(payload, "created_at"),
+        event_type=OperatorInputAuditEventType(
+            _required_json_string(payload, "event_type")
+        ),
+        input_source=OperatorInputSourceKind(
+            _required_json_string(payload, "input_source")
+        ),
+        data_kinds=tuple(
+            OperatorInputAuditDataKind(value)
+            for value in _required_json_string_tuple(payload, "data_kinds")
+        ),
+        validation_reason_codes=_required_json_string_tuple(
+            payload,
+            "validation_reason_codes",
+        ),
+        rule_reasons=_required_json_string_tuple(payload, "rule_reasons"),
+        required_confirmations=_required_json_string_tuple(
+            payload,
+            "required_confirmations",
+        ),
+        action_status=_required_json_string(payload, "action_status"),
+        market_data_state=_required_json_string(payload, "market_data_state"),
+        data_source_classification=_required_json_string(
+            payload,
+            "data_source_classification",
+        ),
+        can_act=_required_json_bool(payload, "can_act"),
+        simulation_label=_optional_json_string(payload, "simulation_label"),
+        summary=_optional_json_string(payload, "summary", default=""),
+    )
+
+
 def operator_input_from_inventory_state(
     state: InventoryState,
     *,
@@ -361,3 +535,89 @@ def _required(value: object, field_name: str):
     if value is None:
         raise ValueError(f"{field_name} is required.")
     return value
+
+
+def _require_safe_identifier(value: str, field_name: str) -> str:
+    text = _require_non_empty_string(value, field_name)
+    if "/" in text or "\\" in text or text in {".", ".."} or ".." in text:
+        raise ValueError(f"{field_name} must be a safe identifier.")
+    return text
+
+
+def _require_non_empty_string(value: str | None, field_name: str) -> str:
+    text = _require_string(value, field_name)
+    if not text.strip():
+        raise ValueError(f"{field_name} is required.")
+    return text
+
+
+def _require_string(value: str | None, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string.")
+    return value
+
+
+def _require_string_tuple(value: tuple[str, ...], field_name: str) -> tuple[str, ...]:
+    if not isinstance(value, tuple):
+        raise ValueError(f"{field_name} must be a tuple.")
+    if not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{field_name} must contain only strings.")
+    return value
+
+
+def _require_enum_tuple(
+    value: tuple[Enum, ...],
+    expected_type: type[Enum],
+    field_name: str,
+) -> tuple[Enum, ...]:
+    if not isinstance(value, tuple):
+        raise ValueError(f"{field_name} must be a tuple.")
+    if not all(isinstance(item, expected_type) for item in value):
+        raise ValueError(f"{field_name} must contain only {expected_type.__name__}.")
+    return value
+
+
+def _required_json_string(payload: Mapping[str, object], field_name: str) -> str:
+    if field_name not in payload:
+        raise ValueError(f"{field_name} is required.")
+    value = payload[field_name]
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string.")
+    return value
+
+
+def _optional_json_string(
+    payload: Mapping[str, object],
+    field_name: str,
+    *,
+    default: str | None = None,
+) -> str | None:
+    value = payload.get(field_name, default)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string.")
+    return value
+
+
+def _required_json_bool(payload: Mapping[str, object], field_name: str) -> bool:
+    if field_name not in payload:
+        raise ValueError(f"{field_name} is required.")
+    value = payload[field_name]
+    if not isinstance(value, bool):
+        raise ValueError(f"{field_name} must be a boolean.")
+    return value
+
+
+def _required_json_string_tuple(
+    payload: Mapping[str, object],
+    field_name: str,
+) -> tuple[str, ...]:
+    if field_name not in payload:
+        raise ValueError(f"{field_name} is required.")
+    value = payload[field_name]
+    if not isinstance(value, list):
+        raise ValueError(f"{field_name} must be a list.")
+    if not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{field_name} must contain only strings.")
+    return tuple(value)

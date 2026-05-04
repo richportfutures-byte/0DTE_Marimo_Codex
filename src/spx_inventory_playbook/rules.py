@@ -5,9 +5,11 @@ from enum import Enum
 
 from .adapters.option_chain_provider import MarketDataProviderState
 from .operator_inputs import (
+    OperatorInputAuditRecord,
     OperatorInputValidation,
     OperatorInputState,
     OperatorSetup,
+    build_operator_input_audit_record,
     normalize_operator_input_state,
     validate_operator_input_state,
 )
@@ -382,6 +384,42 @@ def evaluate_operator_input_authorization(
         ),
         validation,
     )
+
+
+def evaluate_operator_input_authorization_with_audit(
+    operator_input: OperatorInputState,
+    *,
+    audit_id: str,
+    session_id: str,
+    created_at: str,
+    market_data_state: MarketDataProviderState | None = None,
+) -> tuple[RuleDecision, OperatorInputValidation, OperatorInputAuditRecord]:
+    """Evaluate operator inputs and return serializable local audit evidence."""
+
+    decision, validation = evaluate_operator_input_authorization(
+        operator_input,
+        market_data_state=market_data_state,
+    )
+    effective_market_data_state = (
+        decision.market_data_state.value
+        if decision.market_data_state is not None
+        else "missing"
+    )
+    audit_record = build_operator_input_audit_record(
+        operator_input,
+        validation,
+        audit_id=audit_id,
+        session_id=session_id,
+        created_at=created_at,
+        action_status=decision.action_status.value,
+        can_act=decision.can_act,
+        market_data_state=effective_market_data_state,
+        data_source_classification=decision.data_source_classification.value,
+        rule_reasons=tuple(decision.reasons),
+        required_confirmations=tuple(decision.required_confirmations),
+        summary="operator inputs evaluated by rule engine",
+    )
+    return decision, validation, audit_record
 
 
 def _market_data_override_decision(
