@@ -9,8 +9,10 @@
 - Verification command: `scripts/verify.sh`
 - Daily export command: `scripts/export_daily_bundle.sh`
 - Operator runbook: `docs/OPERATOR_RUNBOOK.md`
+- Founder-ready acceptance: `docs/FOUNDER_READY_ACCEPTANCE.md`
 - Test count is intentionally not pinned here; run `uv run pytest`, or `uv run pytest --collect-only` if a count is needed.
 - The app is a marimo-based reference and operating framework for 0DTE SPX/SPXW inventory work.
+- Roadmap status: R11 final founder-ready acceptance complete.
 
 ## Module Responsibilities
 
@@ -31,7 +33,7 @@
 
 ## App-Level Regression Coverage
 
-R9 adds `tests/test_app_level_regressions.py`, a fixture-only regression layer over the main workstation boundaries:
+R9 adds `tests/test_app_level_regressions.py`, a fixture-only regression layer over the main workstation boundaries. R11 adds `tests/test_founder_ready_acceptance.py` to pin the final documentation and script-level acceptance boundaries:
 
 - Notebook import and direct script execution remain valid without live credentials.
 - Session lifecycle start, authorization, close, and invalid authorization paths remain deterministic and fail closed.
@@ -45,6 +47,20 @@ R9 adds `tests/test_app_level_regressions.py`, a fixture-only regression layer o
 - Token-like and credential-like strings are redacted from app/export artifacts using abstract placeholder values only.
 
 Default verification remains non-live, credential-free, and fixture-safe.
+
+## Founder-Ready Acceptance
+
+R11 accepts the repo as a local-first personal 0DTE SPX/SPXW inventory workstation, not a scaffold, SaaS product, broker submission system, order-routing tool, or automated execution system. The accepted envelope is documented in `docs/FOUNDER_READY_ACCEPTANCE.md`.
+
+The supported operator commands are:
+
+```bash
+scripts/launch_app.sh
+scripts/verify.sh
+scripts/export_daily_bundle.sh
+```
+
+Default launch, verification, tests, notebook smoke, and fixture/default export paths remain deterministic, non-live, credential-free, and fixture-safe. Live data requires explicit operator opt-in and must fail as live data; it must not silently fall back to fixture authorization. Token files are not read or printed by tests or default commands.
 
 ## Notebook Position UI
 

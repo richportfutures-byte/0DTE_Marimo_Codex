@@ -2,16 +2,16 @@
 
 ## Current Position
 
-- Current roadmap position: R10 complete
-- Last completed step: R10 Launch Ergonomics and Runbooks
-- Current step: launch ergonomics and runbooks implemented and awaiting final commit
-- Next planned step: R11 Final Founder-Ready Acceptance
+- Current roadmap position: R11 complete
+- Last completed step: R11 Final Founder-Ready Acceptance
+- Current step: roadmap complete
+- Next planned step: none; preserve accepted local-first personal workstation boundaries unless explicitly directed
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Do not start R11 until R10 is verified and committed.
+- Roadmap R0 through R11 is complete; do not broaden scope without an explicit new prompt.
 - Do not call live APIs.
 - Do not read or print token files.
 - Do not introduce commercial SaaS requirements.
@@ -25,8 +25,8 @@
 1. Open this file first.
 2. Confirm `docs/founder_ready_roadmap.md` exists and matches the roadmap through R11.
 3. Check `git status --short` before making changes.
-4. Continue from the current roadmap position unless the user explicitly redirects.
-5. For the next step, perform R1 baseline verification before implementation.
+4. Treat R11 as complete unless the user explicitly redirects.
+5. For any future change prompt, perform a clean-tree and fixture-safe baseline verification before implementation.
 6. Keep all routine verification credential-free and fixture-safe.
 7. If live-data work is later requested, confirm boundaries first and never read or print credential material.
 
@@ -783,3 +783,45 @@ All R10 scripts are fixture-safe by default and do not call live APIs, read toke
   - Result before commit showed only expected R10 script, runbook, test, README, and documentation changes.
 
 R10 is complete after commit. Do not start R11 until explicitly requested.
+
+## R11 Final Founder-Ready Acceptance - Results
+
+- Date/time in local shell: Mon May 4 01:48:02 EDT 2026
+- Current roadmap position: R11 complete
+- Next step: roadmap complete; future work should be treated as a new scoped prompt
+
+### Files Changed
+
+- `docs/FOUNDER_READY_ACCEPTANCE.md`
+- `tests/test_founder_ready_acceptance.py`
+- `README.md`
+- `docs/HANDOFF.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+R11 accepts the repo as a founder-ready, local-first personal 0DTE SPX/SPXW inventory workstation. The accepted operating envelope is fixture-default, explicitly live-gated, no-silent-fallback, restart-safe, audit-preserving, rule-authorized, operator-input-audited, and locally exportable through the daily bundle.
+
+The final acceptance artifact documents the supported local launch, verification, and export scripts plus app-level smoke/regression coverage. It also preserves the hard boundaries: no broker submission, no order routing, no automated execution, no live APIs in default verification, and no token-file reads or prints from tests/default commands.
+
+### Tests Added
+
+- `tests/test_founder_ready_acceptance.py`
+
+### Verification Results
+
+- PASS: targeted `uv run pytest -q tests/test_founder_ready_acceptance.py`
+  - Result: 7 passed.
+- PASS: targeted `uv run ruff check tests/test_founder_ready_acceptance.py`
+  - Result: all checks passed.
+- PASS: final `uv run pytest`
+  - Result: 560 passed.
+- PASS: final `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: final `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+- PASS: final `scripts/verify.sh`
+  - Result: script exited 0 after running `uv run pytest` with 560 passed, `uv run ruff check .` with all checks passed, and `uv run python notebooks/spx_inventory_app.py` successfully. The first sandboxed invocation failed before running checks because `uv` could not open its cache under `/Users/stu/.cache/uv`; the approved rerun completed successfully.
+
+R11 is complete after commit. Migration is required before any further roadmap prompt because R0 through R11 are complete.

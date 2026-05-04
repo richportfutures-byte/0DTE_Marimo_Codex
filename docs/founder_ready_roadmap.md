@@ -429,6 +429,10 @@ Keep runbooks practical and local. They should help one operator complete the tr
 
 ## R11 Final Founder-Ready Acceptance
 
+### Status
+
+Complete. R11 adds the final founder-ready acceptance artifact and deterministic acceptance tests over the repo's local-first personal operating envelope, fixture/default behavior, explicit live opt-in, no-silent-fallback doctrine, restart-safe durable local state, inventory and event/audit evidence, rule authorization, operator-input audit evidence, local daily export bundle, launch/verify/export wrappers, app-level smoke/regression coverage, no broker/order/execution boundaries, and default non-live credential-safe verification.
+
 ### Goal
 
 Verify the app is ready for disciplined personal operational use as a local-first SPX/SPXW 0DTE inventory workstation.

@@ -18,6 +18,7 @@ This repo is a compact reference and operator decision-support shell for 0DTE SP
 - `notebooks/spx_inventory_app.py`: marimo UI shell.
 - `scripts/`: Local launch, verification, and export wrappers.
 - `tests/`: unit tests and guardrail checks.
+- `docs/FOUNDER_READY_ACCEPTANCE.md`: final accepted local operating envelope and hard boundaries.
 
 ## Live-Data-Safe Boundaries
 
@@ -67,7 +68,7 @@ Export a fixture/default daily bundle:
 scripts/export_daily_bundle.sh
 ```
 
-See [Operator Runbook](docs/OPERATOR_RUNBOOK.md) for normal launch, verification, daily export, live-data safety, restart/recovery, and troubleshooting.
+See [Operator Runbook](docs/OPERATOR_RUNBOOK.md) for normal launch, verification, daily export, live-data safety, restart/recovery, and troubleshooting. See [Founder-Ready Acceptance](docs/FOUNDER_READY_ACCEPTANCE.md) for the final accepted operating envelope and hard boundaries.
 
 ## Current App Sections
 
@@ -107,3 +108,5 @@ See [Operator Runbook](docs/OPERATOR_RUNBOOK.md) for normal launch, verification
 
 - [Founder-ready roadmap](docs/founder_ready_roadmap.md)
 - [Orchestration state](docs/orchestration_state.md)
+- [Founder-ready acceptance](docs/FOUNDER_READY_ACCEPTANCE.md)
+- [Project handoff](docs/HANDOFF.md)
