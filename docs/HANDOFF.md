@@ -22,6 +22,23 @@
 - `src/spx_inventory_playbook/prompts.py`: copy-ready session prompt templates.
 - `tests/`: unit tests, row-count checks, compactness checks, and guardrail checks.
 
+## App-Level Regression Coverage
+
+R9 adds `tests/test_app_level_regressions.py`, a fixture-only regression layer over the main workstation boundaries:
+
+- Notebook import and direct script execution remain valid without live credentials.
+- Session lifecycle start, authorization, close, and invalid authorization paths remain deterministic and fail closed.
+- Local session metadata, lifecycle events, and inventory ledger records can be written, restored after restart, and exported.
+- Missing or corrupt required state raises explicit safe errors.
+- Fixture option-chain mode remains the default and does not call live fetchers.
+- Live activation failures remain live failures and do not silently fall back to fixture data.
+- Stale, unavailable, and parse-error market-data states remain distinct in rule/audit decisions.
+- Daily exports preserve required sections, provenance, and fixture/live classifications.
+- Rule-engine authorization remains the app/operator decision layer and operator-input audit evidence remains JSON-serializable.
+- Token-like and credential-like strings are redacted from app/export artifacts using abstract placeholder values only.
+
+Default verification remains non-live, credential-free, and fixture-safe.
+
 ## Notebook Position UI
 
 - Position Entry: user-supplied position form and add action.

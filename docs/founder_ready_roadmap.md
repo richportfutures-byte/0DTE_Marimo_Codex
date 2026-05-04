@@ -347,6 +347,10 @@ Treat the export bundle as the workstation's daily evidence package. Do not add 
 
 ## R9 App-Level Smoke and Regression Tests
 
+### Status
+
+Complete. R9 adds fixture-only app-level regression coverage for notebook import/script smoke, deterministic session lifecycle and restart-safe state recovery, live-data gating, daily export bundle generation, rule-engine authorization integration, operator-input audit serialization, and secret redaction.
+
 ### Goal
 
 Add app-level confidence that critical personal-workstation workflows remain intact across restarts and refactors.

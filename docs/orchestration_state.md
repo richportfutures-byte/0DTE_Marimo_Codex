@@ -2,16 +2,16 @@
 
 ## Current Position
 
-- Current roadmap position: R8 complete
-- Last completed step: R8 Daily Export Bundle
-- Current step: daily export bundle implemented and awaiting final commit
-- Next planned step: R9 App-Level Smoke and Regression Tests
+- Current roadmap position: R9 complete
+- Last completed step: R9 App-Level Smoke and Regression Tests
+- Current step: app-level regression coverage implemented and awaiting final commit
+- Next planned step: R10 Launch Ergonomics and Runbooks
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Do not start R9 until R8 is verified and committed.
+- Do not start R10 until R9 is verified and committed.
 - Do not call live APIs.
 - Do not read or print token files.
 - Do not introduce commercial SaaS requirements.
@@ -691,3 +691,44 @@ The implementation does not call live APIs, read token files, print credentials,
   - Result before commit showed only expected R8 tracked modifications and new files.
 
 R8 is complete after commit. Do not start R9 until explicitly requested.
+
+## R9 App-Level Smoke and Regression Tests - Results
+
+- Date/time in local shell: Mon May 4 01:17:39 EDT 2026
+- Current roadmap position: R9 complete
+- Next step: R10 Launch Ergonomics and Runbooks
+
+### Files Changed
+
+- `tests/test_app_level_regressions.py`
+- `docs/HANDOFF.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/orchestration_state.md`
+
+### Design Summary
+
+Added a focused app-level regression layer that connects the existing R2-R8 module boundaries without rewriting the notebook or adding UI-polish assertions. The tests remain deterministic, fixture-only, credential-free, and non-live.
+
+The coverage proves notebook import and script smoke behavior, deterministic session lifecycle and close behavior, local state and ledger restart recovery, explicit corrupt/missing state failures, fixture-default option-chain behavior, live-gate failure isolation, distinct stale/unavailable/parse-error authorization states, export bundle section/provenance preservation, rule-engine operator authorization integration, operator-input audit serialization, and app/export redaction of token-like placeholders.
+
+### Tests Added
+
+- `tests/test_app_level_regressions.py`
+
+### Verification Results
+
+- PASS: targeted `uv run pytest -q tests/test_app_level_regressions.py`
+  - Result: 6 passed.
+- PASS: targeted `uv run ruff check tests/test_app_level_regressions.py`
+  - Result: all checks passed.
+
+- PASS: post-edit `uv run pytest`
+  - Result: 548 passed.
+- PASS: post-edit `uv run ruff check .`
+  - Result: all checks passed.
+- PASS: post-edit `uv run python notebooks/spx_inventory_app.py`
+  - Result: command exited 0 with no stdout/stderr.
+- PASS: post-edit `git status --short`
+  - Result before commit showed only expected R9 documentation changes and the new app-level regression test file.
+
+R9 is complete after commit. Do not start R10 until explicitly requested.
