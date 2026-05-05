@@ -86,6 +86,24 @@ Default launch and verification commands do not activate live mode, read token f
 
 Do not print credential environment variables. Do not paste tokens into docs, tests, or runbooks. A live failure must remain a live failure; do not treat it as fixture authorization.
 
+## Single-Active Schwab Ownership
+
+The 0DTE workstation is the primary implementation target for live 0DTE
+option-chain work. R13 will add an 0DTE-native Schwab token manager so
+`0DTE_Marimo_Codex` can refresh tokens when it is the active live app.
+
+Use one Schwab registered developer app / key-secret-callback configuration
+serially across local repos. Do not run `0DTE_Marimo_Codex` live and
+`ntb-marimo-console` live at the same time. `ntb-marimo-console` remains allowed
+as a donor/reference repo, and it may be used as a separate live harness only
+when `0DTE_Marimo_Codex` is shut down.
+
+R13 remains fail-closed: token refresh failures must surface as live failures,
+must not fall back to fixture data, and must not print, display, commit, export,
+or log credential material. R13 does not add automatic refresh loops, streaming
+sidecars, order routing, account access, fills, positions import, P/L import,
+broker/execution integration, or official Schwab REST rate-limit claims.
+
 ## Data Degradation
 
 - `fixture`: simulation-only, not live authorization.

@@ -537,3 +537,130 @@ Treat R12 as controlled live runtime wiring only. Keep default commands
 fixture-safe and credential-free. A real Schwab request belongs only in an
 explicit operator-run live rehearsal or manually refreshed notebook session with
 the required local token source and confirmation phrase.
+
+## R13 - Single-Active-App Schwab Token Manager
+
+### Status
+
+Next active roadmap step. R13 is not implemented by this documentation update.
+R12 remains complete and verified at commit
+`5e63a7ea5f95fe6cdaca0917627920083e02d004`.
+
+### Correct Interpretation
+
+R13 means `0DTE_Marimo_Codex` becomes self-sufficient for Schwab token refresh
+when it is the active 0DTE live app. R13 does not mean `ntb-marimo-console` is
+deleted, retired, permanently disabled, or barred from future reference use.
+
+The ownership doctrine is:
+
+- One Schwab registered developer app / key-secret-callback configuration.
+- Multiple local repos may use that Schwab app configuration serially.
+- Only one Schwab-authenticated live process should be active at a time.
+- Do not run `0DTE_Marimo_Codex` live and `ntb-marimo-console` live
+  simultaneously.
+- `ntb-marimo-console` remains allowed as a donor/reference repo.
+- `ntb-marimo-console` remains allowed as a separate live harness only when
+  `0DTE_Marimo_Codex` is shut down.
+- `0DTE_Marimo_Codex` is the primary implementation target for the 0DTE
+  workstation.
+
+### Goal
+
+Add an 0DTE-native Schwab token manager so the notebook live option-chain path
+can refresh an expired token before a manually gated live REST request, while
+preserving fixture defaults and fail-closed behavior.
+
+### Deliverables
+
+- 0DTE-native Schwab token manager.
+- Token refresh before the live option-chain REST request when refresh is
+  needed.
+- Atomic token-file rewrite.
+- Preservation of the existing refresh token when Schwab omits a replacement
+  refresh token.
+- Live refresh failures surfaced as live failures.
+- Deterministic mocked tests only.
+
+### Non-goals
+
+- No automatic refresh loop.
+- No streaming sidecar.
+- No order routing.
+- No account access.
+- No fills.
+- No positions import.
+- No P/L import.
+- No broker/execution integration.
+- No official Schwab REST rate-limit claims.
+- No live API calls in routine tests or default verification.
+
+### Acceptance criteria
+
+- Fixture mode remains the default and remains credential-free.
+- Live mode still requires explicit source selection, exact confirmation phrase,
+  configured local credential source, and manual refresh.
+- Token refresh occurs only inside the explicit live path when needed.
+- Token-file writes are atomic and do not print, export, or log token contents.
+- If refresh fails, the live request fails closed and does not fall back to
+  fixture data.
+- If Schwab omits a new refresh token, the prior refresh token is preserved.
+- Tests use mocked HTTP/token responses only and do not require real credentials
+  or network access.
+- Secret-bearing values are not printed, displayed, committed, exported, or
+  logged, including access tokens, refresh tokens, app secrets, Authorization
+  headers, bearer tokens, callback URLs with codes, account IDs, customer IDs,
+  correl IDs, streamer URLs, raw Schwab payload bodies, Schwab user preference
+  raw responses, or token-file contents.
+
+### Dependencies
+
+- R12 controlled Marimo live runtime wiring.
+- Existing manually gated Schwab option-chain provider boundary.
+- Existing fixture-safe launch, verification, and test doctrine.
+
+### Resume note for future LLM orchestration
+
+R13 implementation must stay inside `0DTE_Marimo_Codex`. Use
+`ntb-marimo-console` only as a donor/reference for Schwab OAuth, token, or
+harness behavior. Do not implement R14 auto-refresh or R15 streamer behavior in
+R13.
+
+## R14 - Conservative REST Auto-Refresh
+
+### Status
+
+Future step after R13.
+
+### Scope
+
+- Default off.
+- Manual refresh remains the primary operator workflow.
+- Conservative minimum interval guard for REST refreshes.
+- 429 backoff behavior.
+- Hard stop after repeated live failures.
+
+### Non-goals
+
+- No official Schwab REST rate-limit claims unless verified from official docs
+  in a future prompt.
+- No streaming sidecar.
+- No broker/order/execution/account behavior.
+
+## R15 - Single Schwab Streamer Sidecar / Quote Cache
+
+### Status
+
+Future step after R14.
+
+### Scope
+
+- One active streamer connection.
+- Marimo reads cache snapshots.
+- No long-running WebSocket loop inside ordinary notebook cells.
+
+### Non-goals
+
+- No multiple simultaneous Schwab streamer owners.
+- No order routing, account actions, fills, positions import, P/L import, or
+  broker/execution integration.

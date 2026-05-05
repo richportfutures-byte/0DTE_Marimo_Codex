@@ -101,6 +101,33 @@ workflow before retrying the manual harness. The harness must not print raw
 payload bodies, token values, secrets, Authorization headers, API keys, client
 secrets, callback URL values, or token contents.
 
+## R13 Token Manager Direction
+
+R13 is the next active roadmap step: Single-Active-App Schwab Token Manager.
+R13 makes `0DTE_Marimo_Codex` self-sufficient for Schwab token refresh when it
+is the active 0DTE live app. It does not delete, retire, or permanently disable
+`ntb-marimo-console`.
+
+The live ownership doctrine is serial, not concurrent:
+
+- One Schwab registered developer app / key-secret-callback configuration.
+- Multiple local repos may use that Schwab app configuration serially.
+- Only one Schwab-authenticated live process should be active at a time.
+- Do not run `0DTE_Marimo_Codex` live and `ntb-marimo-console` live
+  simultaneously.
+- `ntb-marimo-console` remains allowed as a donor/reference repo.
+- `ntb-marimo-console` remains allowed as a separate live harness only when
+  `0DTE_Marimo_Codex` is shut down.
+
+R13 scope is 0DTE-native token refresh before a live option-chain REST request
+when needed, atomic token-file rewrite, refresh-token preservation if Schwab
+omits a replacement refresh token, fail-closed refresh failure behavior, no
+fixture fallback after live failure, and mocked tests only.
+
+R13 does not add automatic refresh loops, a streaming sidecar, order routing,
+account access, fills, positions import, P/L import, broker/execution
+integration, or official Schwab REST rate-limit claims.
+
 ## Boundaries
 
 - Marimo live option-chain wiring is controlled, display-only, operator-gated,

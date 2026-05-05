@@ -4,28 +4,32 @@
 
 - Current roadmap position: R12 complete
 - Last completed step: R12 Controlled Marimo Live Runtime Wiring
-- Current step: R12 complete
-- Next planned step: preserve controlled live-runtime boundaries unless explicitly directed
+- Current step: R13 Single-Active-App Schwab Token Manager is the next active roadmap step
+- Next planned step: implement R13 token-manager behavior only after this document-alignment step is committed and explicitly continued
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Roadmap R0 through R12 is complete; do not broaden scope without an explicit new prompt.
+- Roadmap R0 through R12 is complete; R13 is the next active roadmap step.
 - Do not call live APIs during default launch, default verification, tests, or documentation work.
 - Do not read or print token files.
+- Do not implement token-manager code during the R13A documentation-alignment prompt.
 - Do not introduce commercial SaaS requirements.
 - Do not add order routing, broker submission, or automated execution concepts.
 - Preserve fail-closed doctrine.
 - Preserve fixture/live distinction.
+- Preserve single-active Schwab live ownership: do not run `0DTE_Marimo_Codex`
+  live and `ntb-marimo-console` live simultaneously.
 - Use precise language: this is for personal operational use, not public commercial release.
 
 ## How To Resume If The Chat Migrates
 
 1. Open this file first.
-2. Confirm `docs/founder_ready_roadmap.md` exists and matches the roadmap through R12.
+2. Confirm `docs/founder_ready_roadmap.md` exists, records R12 complete, and
+   includes the R13/R14/R15 live-runtime sequencing.
 3. Check `git status --short` before making changes.
-4. Treat R12 as complete unless the user explicitly redirects.
+4. Treat R12 as complete and R13 as the next active roadmap step unless the user explicitly redirects.
 5. For any future change prompt, perform a clean-tree and fixture-safe baseline verification before implementation.
 6. Keep all routine verification credential-free and fixture-safe.
 7. If live-data work is later requested, confirm boundaries first and never read or print credential material.
@@ -35,6 +39,7 @@
 - No implementation before baseline verification.
 - No live API calls.
 - No credential reads.
+- No token-manager implementation during R13A document alignment.
 - No UI polish.
 - No execution or broker-order features.
 
@@ -899,3 +904,65 @@ automatic refresh, or production-grade live-data claims.
 
 R12 is complete after commit. Future work should treat live runtime behavior as
 controlled, display-only, operator-gated, fail-closed market-data wiring.
+
+## R13A Roadmap And Project-Management Document Alignment - Results
+
+- Date/time in local shell: Tue May 5 2026
+- Current roadmap position: R12 complete
+- Next active roadmap step: R13 Single-Active-App Schwab Token Manager
+
+### Files Changed
+
+- `README.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/HANDOFF.md`
+- `docs/OPERATOR_RUNBOOK.md`
+- `docs/LIVE_MARKET_REHEARSAL_READINESS.md`
+- `docs/orchestration_state.md`
+
+### Alignment Summary
+
+R12 is documented as complete and verified at commit
+`5e63a7ea5f95fe6cdaca0917627920083e02d004`.
+
+R13 is defined as Single-Active-App Schwab Token Manager. The correct R13
+meaning is that `0DTE_Marimo_Codex` becomes self-sufficient for Schwab token
+refresh when it is the active 0DTE live app. R13 does not delete, retire, or
+permanently disable `ntb-marimo-console`.
+
+The encoded live ownership doctrine is:
+
+- One Schwab registered developer app / key-secret-callback configuration.
+- Multiple local repos may use that Schwab app configuration serially.
+- Only one Schwab-authenticated live process should be active at a time.
+- Do not run `0DTE_Marimo_Codex` live and `ntb-marimo-console` live
+  simultaneously.
+- `ntb-marimo-console` remains allowed as a donor/reference repo.
+- `ntb-marimo-console` remains allowed as a separate live harness only when
+  `0DTE_Marimo_Codex` is shut down.
+- `0DTE_Marimo_Codex` remains the primary implementation target for the 0DTE
+  workstation.
+
+R13 scope is limited to an 0DTE-native token manager, token refresh before live
+option-chain REST requests when needed, atomic token-file rewrite,
+refresh-token preservation when Schwab omits it, fail-closed refresh failures,
+no fixture fallback after live failure, and mocked tests only.
+
+R14 is reserved for Conservative REST Auto-Refresh: default off, manual refresh
+primary, conservative minimum interval guard, 429 backoff, and hard stop after
+repeated live failures.
+
+R15 is reserved for Single Schwab Streamer Sidecar / Quote Cache: one active
+streamer connection, Marimo cache-snapshot reads, and no long-running WebSocket
+loop inside ordinary notebook cells.
+
+No token-manager implementation was added in R13A.
+
+### Verification Results
+
+- PASS: `git diff -- docs README.md || true`
+  - Result: displayed only intended documentation / README changes.
+- PASS: `uv run pytest`
+  - Result: 566 passed.
+- PASS: `uv run ruff check .`
+  - Result: all checks passed.

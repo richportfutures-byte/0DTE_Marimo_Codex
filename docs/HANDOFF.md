@@ -12,7 +12,8 @@
 - Founder-ready acceptance: `docs/FOUNDER_READY_ACCEPTANCE.md`
 - Test count is intentionally not pinned here; run `uv run pytest`, or `uv run pytest --collect-only` if a count is needed.
 - The app is a marimo-based reference and operating framework for 0DTE SPX/SPXW inventory work.
-- Roadmap status: R12 controlled Marimo live runtime wiring complete.
+- Roadmap status: R12 controlled Marimo live runtime wiring complete; R13
+  Single-Active-App Schwab Token Manager is the next active roadmap step.
 
 ## Module Responsibilities
 
@@ -61,6 +62,9 @@ the notebook's option-chain panel under explicit operator opt-in. This is
 display-only market-data wiring, not broker integration, order routing,
 execution, account access, positions import, fill import, or P/L import.
 
+R12 is complete and verified at commit
+`5e63a7ea5f95fe6cdaca0917627920083e02d004`.
+
 The notebook defaults to `Fixture/static option chain`. A live request can occur
 only when the operator selects `Live Schwab option chain`, enters the exact
 confirmation phrase `capture-live-option-chain-selection`, launches with a local
@@ -73,6 +77,42 @@ classifies it as `fixture`, `live_fresh`, `live_stale`, `live_unavailable`, or
 `live_parse_error`. Live failures remain live failures and never fall back to
 fixture data. Last-successful retained context is limited to explicitly
 fresh/aging live option-chain results.
+
+## R13 Next: Single-Active-App Schwab Token Manager
+
+R13 is the next active roadmap step. It means `0DTE_Marimo_Codex` becomes
+self-sufficient for Schwab token refresh when it is the active 0DTE live app.
+It does not delete, retire, or permanently disable `ntb-marimo-console`.
+
+Schwab live ownership doctrine:
+
+- One Schwab registered developer app / key-secret-callback configuration.
+- Multiple local repos may use that Schwab app configuration serially.
+- Only one Schwab-authenticated live process should be active at a time.
+- Do not run `0DTE_Marimo_Codex` live and `ntb-marimo-console` live
+  simultaneously.
+- `ntb-marimo-console` remains allowed as a donor/reference repo.
+- `ntb-marimo-console` remains allowed as a separate live harness only when
+  `0DTE_Marimo_Codex` is shut down.
+- `0DTE_Marimo_Codex` is the primary implementation target for the 0DTE
+  workstation.
+
+R13 implementation scope is limited to an 0DTE-native token manager, refresh
+before a live option-chain REST request when needed, atomic token-file rewrite,
+refresh-token preservation when Schwab omits a replacement refresh token,
+fail-closed refresh failure handling, no fixture fallback after live failure,
+and mocked tests only.
+
+R13 explicitly excludes automatic refresh loops, streaming sidecars, order
+routing, account access, fills, positions import, P/L import,
+broker/execution integration, and official Schwab REST rate-limit claims.
+
+R14 is reserved for conservative REST auto-refresh with default-off behavior,
+manual refresh as the primary workflow, a conservative minimum interval guard,
+429 backoff, and a hard stop after repeated live failures. R15 is reserved for a
+single Schwab streamer sidecar / quote cache with one active streamer
+connection and Marimo cache-snapshot reads, not long-running WebSocket loops
+inside ordinary notebook cells.
 
 ## Founder-Ready Acceptance
 
