@@ -8,6 +8,7 @@ freshness, and display-only context flag path.
 from __future__ import annotations
 
 import json
+import os
 import socket
 import urllib.error
 import urllib.parse
@@ -35,10 +36,18 @@ from spx_inventory_playbook.adapters.schwab_option_chain import (
 from spx_inventory_playbook.adapters.schwab_option_chain_selection import (
     build_spx_0dte_selection_view,
 )
+from spx_inventory_playbook.adapters.schwab_token_manager import (
+    DEFAULT_SCHWAB_TOKEN_URL,
+    SchwabTokenManagerError,
+    load_access_token_with_refresh_if_needed,
+)
 
 
 MANUAL_LIVE_CONFIRM_PHRASE = "capture-live-option-chain-selection"
 SCHWAB_OPTION_CHAIN_ENDPOINT = "https://api.schwabapi.com/marketdata/v1/chains"
+SCHWAB_APP_KEY_ENV_VAR = "SCHWAB_APP_KEY"
+SCHWAB_APP_SECRET_ENV_VAR = "SCHWAB_APP_SECRET"
+SCHWAB_OAUTH_TOKEN_URL_ENV_VAR = "SCHWAB_OAUTH_TOKEN_URL"
 
 LiveHarnessStatus = Literal["available", "unavailable", "error"]
 JsonObject = dict[str, Any]
@@ -172,6 +181,10 @@ def run_manual_live_schwab_option_chain_selection(
     access_token_stdin: TextIO | None = None,
     http_get_json: Callable[[SchwabOptionChainRequestSpec, str], JsonObject]
     | None = None,
+    app_key: str | None = None,
+    app_secret: str | None = None,
+    token_url: str | None = None,
+    token_refresh_urlopen: Callable[..., object] = urllib.request.urlopen,
     now: datetime | None = None,
 ) -> LiveSchwabOptionChainHarnessResult:
     """Run one manually gated live selection capture and return safe metadata."""
@@ -183,16 +196,17 @@ def run_manual_live_schwab_option_chain_selection(
             live_mode_used=False,
         )
 
-    access_token = read_access_token(
+    token_result = _load_live_access_token(
         access_token_file=access_token_file,
         access_token_stdin=access_token_stdin,
+        app_key=app_key,
+        app_secret=app_secret,
+        token_url=token_url,
+        token_refresh_urlopen=token_refresh_urlopen,
     )
-    if not access_token:
-        return LiveSchwabOptionChainHarnessResult(
-            status="unavailable",
-            reason_code="access_token_required",
-            live_mode_used=False,
-        )
+    if isinstance(token_result, LiveSchwabOptionChainHarnessResult):
+        return token_result
+    access_token = token_result
 
     try:
         request_spec = build_schwab_option_chain_request_spec(config)
@@ -311,6 +325,71 @@ def _urlopen_json(
     return parsed
 
 
+def _load_live_access_token(
+    *,
+    access_token_file: Path | None,
+    access_token_stdin: TextIO | None,
+    app_key: str | None,
+    app_secret: str | None,
+    token_url: str | None,
+    token_refresh_urlopen: Callable[..., object],
+) -> str | LiveSchwabOptionChainHarnessResult:
+    if access_token_file is not None and access_token_stdin is not None:
+        return LiveSchwabOptionChainHarnessResult(
+            status="unavailable",
+            reason_code="access_token_source_conflict",
+            live_mode_used=False,
+        )
+    if access_token_file is not None:
+        try:
+            return load_access_token_with_refresh_if_needed(
+                access_token_file,
+                app_key=_resolve_app_key(app_key),
+                app_secret=_resolve_app_secret(app_secret),
+                token_url=_resolve_token_url(token_url),
+                urlopen_func=token_refresh_urlopen,
+            )
+        except SchwabTokenManagerError as exc:
+            return LiveSchwabOptionChainHarnessResult(
+                status="error",
+                reason_code=exc.reason_code,
+                live_mode_used=True,
+                http_status=exc.http_status,
+            )
+    try:
+        access_token = read_access_token(access_token_stdin=access_token_stdin)
+    except (ValueError, OSError, json.JSONDecodeError):
+        access_token = None
+    if not access_token:
+        return LiveSchwabOptionChainHarnessResult(
+            status="unavailable",
+            reason_code="access_token_required",
+            live_mode_used=False,
+        )
+    return access_token
+
+
+def _resolve_app_key(value: str | None) -> str:
+    return (value if value is not None else os.environ.get(SCHWAB_APP_KEY_ENV_VAR, "")).strip()
+
+
+def _resolve_app_secret(value: str | None) -> str:
+    return (
+        value
+        if value is not None
+        else os.environ.get(SCHWAB_APP_SECRET_ENV_VAR, "")
+    ).strip()
+
+
+def _resolve_token_url(value: str | None) -> str:
+    resolved = (
+        value
+        if value is not None
+        else os.environ.get(SCHWAB_OAUTH_TOKEN_URL_ENV_VAR, "")
+    ).strip()
+    return resolved or DEFAULT_SCHWAB_TOKEN_URL
+
+
 def _http_error_result(exc: urllib.error.HTTPError) -> LiveSchwabOptionChainHarnessResult:
     return LiveSchwabOptionChainHarnessResult(
         status="error",
@@ -346,6 +425,9 @@ def _safe_http_reason(reason: object) -> str | None:
 __all__ = [
     "MANUAL_LIVE_CONFIRM_PHRASE",
     "SCHWAB_OPTION_CHAIN_ENDPOINT",
+    "SCHWAB_APP_KEY_ENV_VAR",
+    "SCHWAB_APP_SECRET_ENV_VAR",
+    "SCHWAB_OAUTH_TOKEN_URL_ENV_VAR",
     "LiveSchwabOptionChainHarnessResult",
     "ManualLiveSchwabOptionChainConfig",
     "SchwabOptionChainRequestSpec",

@@ -74,7 +74,7 @@ See [Operator Runbook](docs/OPERATOR_RUNBOOK.md) for normal launch, verification
 
 R12 controlled Marimo live runtime wiring is complete and verified at commit `5e63a7ea5f95fe6cdaca0917627920083e02d004`.
 
-The next active roadmap step is R13: Single-Active-App Schwab Token Manager. R13 means this repo becomes self-sufficient for Schwab token refresh when it is the active 0DTE live app. It does not retire `ntb-marimo-console`; that repo remains allowed as a donor/reference and as a separate live harness only when this app is shut down. Do not run this app live and `ntb-marimo-console` live simultaneously.
+R13 Single-Active-App Schwab Token Manager is complete. This repo is self-sufficient for Schwab token refresh when it is the active 0DTE live app. R13 does not retire `ntb-marimo-console`; that repo remains allowed as a donor/reference and as a separate live harness only when this app is shut down. Do not run this app live and `ntb-marimo-console` live simultaneously.
 
 ## Current App Sections
 
@@ -104,7 +104,6 @@ The next active roadmap step is R13: Single-Active-App Schwab Token Manager. R13
 
 ## Future Work Backlog
 
-- R13 Single-Active-App Schwab Token Manager: 0DTE-native token refresh before live option-chain REST requests when needed, atomic token-file rewrite, refresh-token preservation when Schwab omits it, fail-closed refresh failures, no fixture fallback, and mocked tests only.
 - R14 Hybrid Continuous Market Data Architecture Audit: determine which SPX/SPXW data comes from Schwab REST versus Streamer, confirm symbol/field support from documentation and donor harness behavior, define source/freshness labels for price, selected option quotes, chain snapshots, Greeks, ATM straddle context, and liquidity, and define fail-closed authorization behavior when any required source is stale or unavailable.
 - R15 Hybrid REST Chain/Greeks Refresh + Streamer Quote Cache Implementation: one active Schwab streamer sidecar/cache for supported continuous price and selected option quote fields, conservative REST refresh for full chain discovery/snapshots and Greeks when provided by REST, Marimo cache-snapshot reads, and no long-running WebSocket loop inside ordinary notebook cells.
 - R16 Continuous Market Data Panel Integration: surface source, last update time, age, and freshness classification for every live market-data field, and use freshness to gate live-dependent authorization while preserving fixture-safe defaults and explicit live opt-in.

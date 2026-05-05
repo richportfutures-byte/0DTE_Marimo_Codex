@@ -2,19 +2,18 @@
 
 ## Current Position
 
-- Current roadmap position: R12 complete
-- Last completed step: R12 Controlled Marimo Live Runtime Wiring
-- Current step: R13 Single-Active-App Schwab Token Manager is the next active roadmap step
-- Next planned step: implement R13 token-manager behavior only after this document-alignment step is committed and explicitly continued
+- Current roadmap position: R13 complete
+- Last completed step: R13 Single-Active-App Schwab Token Manager
+- Current step: R13 complete
+- Next planned step: R14 Hybrid Continuous Market Data Architecture Audit remains future and must not be started without an explicit prompt
 - Known repo role: local-first personal 0DTE SPX/SPXW inventory workstation
 
 ## Hard Constraints
 
 - One roadmap prompt at a time.
-- Roadmap R0 through R12 is complete; R13 is the next active roadmap step.
+- Roadmap R0 through R13 is complete; R14 is future work only.
 - Do not call live APIs during default launch, default verification, tests, or documentation work.
 - Do not read or print token files.
-- Do not implement token-manager code during the R13A documentation-alignment prompt.
 - Do not introduce commercial SaaS requirements.
 - Do not add order routing, broker submission, or automated execution concepts.
 - Preserve fail-closed doctrine.
@@ -26,10 +25,10 @@
 ## How To Resume If The Chat Migrates
 
 1. Open this file first.
-2. Confirm `docs/founder_ready_roadmap.md` exists, records R12 complete, and
+2. Confirm `docs/founder_ready_roadmap.md` exists, records R13 complete, and
    includes the R13/R14/R15/R16 live-runtime sequencing.
 3. Check `git status --short` before making changes.
-4. Treat R12 as complete and R13 as the next active roadmap step unless the user explicitly redirects.
+4. Treat R13 as complete unless the user explicitly redirects.
 5. For any future change prompt, perform a clean-tree and fixture-safe baseline verification before implementation.
 6. Keep all routine verification credential-free and fixture-safe.
 7. If live-data work is later requested, confirm boundaries first and never read or print credential material.
@@ -43,7 +42,6 @@
 - No implementation before baseline verification.
 - No live API calls.
 - No credential reads.
-- No token-manager implementation during R13A document alignment.
 - No REST auto-refresh or streamer sidecar implementation during R13 planning
   amendments.
 - No UI polish.
@@ -989,6 +987,63 @@ No token-manager implementation was added in R13A.
   - Result: displayed only intended documentation / README changes.
 - PASS: `uv run pytest`
   - Result: 566 passed.
+- PASS: `uv run ruff check .`
+  - Result: all checks passed.
+
+## R13 Single-Active-App Schwab Token Manager - Results
+
+- Date/time in local shell: Tue May 5 2026
+- Current roadmap position: R13 complete
+- Next planned step: R14 Hybrid Continuous Market Data Architecture Audit
+  remains future and must not be started without an explicit prompt.
+
+### Files Changed
+
+- `src/spx_inventory_playbook/adapters/schwab_token_manager.py`
+- `src/spx_inventory_playbook/adapters/live_schwab_option_chain_provider.py`
+- `src/spx_inventory_playbook/marimo_option_chain_toggle.py`
+- `tests/test_schwab_token_manager.py`
+- `tests/test_live_schwab_option_chain_provider.py`
+- `tests/test_marimo_option_chain_toggle.py`
+- `tests/test_founder_ready_acceptance.py`
+- `README.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/HANDOFF.md`
+- `docs/OPERATOR_RUNBOOK.md`
+- `docs/LIVE_MARKET_REHEARSAL_READINESS.md`
+- `docs/orchestration_state.md`
+
+### Implementation Summary
+
+Added an 0DTE-native Schwab token manager for the manually gated live
+option-chain path. The token manager loads the local token JSON from
+`SPX_OPTION_CHAIN_LIVE_TOKEN_FILE`, validates access and refresh token
+presence, detects expired or near-expired access tokens, performs a mocked-test
+friendly standard-library refresh request, merges refresh responses, preserves
+the existing refresh token when Schwab omits a replacement, records expiry
+metadata when available, and atomically rewrites the configured token file.
+
+The live provider now calls the token manager before the Schwab option-chain
+REST request for file-backed live mode. `SCHWAB_APP_KEY` and
+`SCHWAB_APP_SECRET` are read only inside the explicit live-gated path, and
+`SCHWAB_OAUTH_TOKEN_URL` may override the token endpoint for tests/local
+override. Injected token/test paths remain deterministic. Refresh failure
+returns safe live failure reason codes and does not call the option-chain
+fetcher. Live failure does not fall back to fixture data.
+
+R13 does not add automatic refresh loops, R14 architecture audit findings, R15
+streamer/cache behavior, R16 continuous market-data panel integration, account
+access, order routing, fills, positions import, P/L import, broker/execution
+integration, or fixture fallback after live failure.
+
+### Verification Results
+
+- PASS: `uv run pytest -q tests/test_schwab_token_manager.py`
+  - Result: 14 passed.
+- PASS: `uv run pytest -q tests/test_live_schwab_option_chain_provider.py tests/test_marimo_option_chain_toggle.py tests/test_market_data_provider_unification.py tests/test_founder_ready_acceptance.py`
+  - Result: 46 passed.
+- PASS: `uv run pytest`
+  - Result: 584 passed.
 - PASS: `uv run ruff check .`
   - Result: all checks passed.
 

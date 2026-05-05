@@ -12,8 +12,7 @@
 - Founder-ready acceptance: `docs/FOUNDER_READY_ACCEPTANCE.md`
 - Test count is intentionally not pinned here; run `uv run pytest`, or `uv run pytest --collect-only` if a count is needed.
 - The app is a marimo-based reference and operating framework for 0DTE SPX/SPXW inventory work.
-- Roadmap status: R12 controlled Marimo live runtime wiring complete; R13
-  Single-Active-App Schwab Token Manager is the next active roadmap step.
+- Roadmap status: R13 Single-Active-App Schwab Token Manager complete.
 
 ## Module Responsibilities
 
@@ -31,6 +30,11 @@
 - `src/spx_inventory_playbook/adapters/live_schwab_option_chain_provider.py`:
   manually gated Schwab `$SPX` option-chain market-data harness. It is
   market-data only and returns sanitized provider metadata.
+- `src/spx_inventory_playbook/adapters/schwab_token_manager.py`: 0DTE-native
+  Schwab token-file refresh helper for the explicitly gated live option-chain
+  path. It refreshes expired/near-expired access tokens before live REST calls,
+  rewrites the token file atomically, preserves refresh tokens when Schwab
+  omits a replacement, and raises only safe non-secret reason codes.
 - `src/spx_inventory_playbook/fixtures.py`: abstract fixture states for tests and UI smoke paths.
 - `src/spx_inventory_playbook/calculators.py`: pure hedge and cost/friction calculators.
 - `src/spx_inventory_playbook/positions.py`: position tracking, lifecycle helpers, and session summary math.
@@ -78,11 +82,11 @@ classifies it as `fixture`, `live_fresh`, `live_stale`, `live_unavailable`, or
 fixture data. Last-successful retained context is limited to explicitly
 fresh/aging live option-chain results.
 
-## R13 Next: Single-Active-App Schwab Token Manager
+## R13 Single-Active-App Schwab Token Manager
 
-R13 is the next active roadmap step. It means `0DTE_Marimo_Codex` becomes
-self-sufficient for Schwab token refresh when it is the active 0DTE live app.
-It does not delete, retire, or permanently disable `ntb-marimo-console`.
+R13 is complete. It makes `0DTE_Marimo_Codex` self-sufficient for Schwab token
+refresh when it is the active 0DTE live app. It does not delete, retire, or
+permanently disable `ntb-marimo-console`.
 
 Schwab live ownership doctrine:
 
@@ -102,6 +106,14 @@ before a live option-chain REST request when needed, atomic token-file rewrite,
 refresh-token preservation when Schwab omits a replacement refresh token,
 fail-closed refresh failure handling, no fixture fallback after live failure,
 and mocked tests only.
+
+The notebook still uses `SPX_OPTION_CHAIN_LIVE_TOKEN_FILE` as the token-file
+source. The explicit live path reads `SCHWAB_APP_KEY` and `SCHWAB_APP_SECRET`
+only after live source selection, exact confirmation phrase, token-file source,
+and manual **Refresh Option Chain** gates pass. `SCHWAB_OAUTH_TOKEN_URL` may be
+used as a local/test override for the token endpoint. Default launch,
+verification, tests, and fixture mode remain credential-free and do not read
+real token files.
 
 R13 explicitly excludes automatic refresh loops, streaming sidecars, order
 routing, account access, fills, positions import, P/L import,

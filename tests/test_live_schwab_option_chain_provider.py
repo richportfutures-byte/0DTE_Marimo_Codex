@@ -27,11 +27,31 @@ FIXTURE_PATH = (
 )
 NOW = datetime(2026, 5, 2, 12, 0, tzinfo=timezone.utc)
 RAW_TOKEN = "secret-access-token-value"
+REFRESH_TOKEN = "secret-refresh-token-value"
 RAW_PAYLOAD_MARKER = "raw-payload-body-marker"
 
 
 def load_payload() -> dict[str, object]:
     return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
+class Response:
+    def __init__(self, body: bytes) -> None:
+        self._body = body
+
+    def __enter__(self) -> "Response":
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return self._body
+
+
+def write_token_file(path: Path, token_data: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(token_data), encoding="utf-8")
 
 
 def live_config(**overrides: object) -> ManualLiveSchwabOptionChainConfig:
@@ -177,6 +197,91 @@ def test_successful_mocked_http_response_parses_and_builds_selection_view() -> N
     assert result.provider_result.selection_view is not None
     assert result.provider_result.selection_view.status == "available"
     assert result.provider_result.selection_view.selected_expiration is not None
+
+
+def test_file_backed_live_token_refresh_occurs_before_option_chain_fetch(
+    tmp_path: Path,
+) -> None:
+    token_file = tmp_path / "token.json"
+    write_token_file(
+        token_file,
+        {
+            "access_token": "expired-access-token-value",
+            "refresh_token": REFRESH_TOKEN,
+            "_spx_expires_at_epoch": 1,
+        },
+    )
+    calls: list[str] = []
+
+    def refresh_urlopen(request: object, timeout: int) -> Response:
+        calls.append("refresh")
+        return Response(
+            json.dumps(
+                {
+                    "access_token": RAW_TOKEN,
+                    "refresh_token": REFRESH_TOKEN,
+                    "expires_in": 1800,
+                }
+            ).encode("utf-8")
+        )
+
+    def fetcher(request_spec: object, access_token: str) -> dict[str, object]:
+        calls.append(f"fetch:{access_token}")
+        return load_payload()
+
+    result = run_manual_live_schwab_option_chain_selection(
+        config=live_config(),
+        access_token_file=token_file,
+        http_get_json=fetcher,
+        app_key="dummy-key",
+        app_secret="dummy-secret",
+        token_refresh_urlopen=refresh_urlopen,
+        now=NOW,
+    )
+
+    assert result.status == "available"
+    assert calls == ["refresh", f"fetch:{RAW_TOKEN}"]
+
+
+def test_token_refresh_failure_does_not_call_option_chain_fetch(
+    tmp_path: Path,
+) -> None:
+    token_file = tmp_path / "token.json"
+    write_token_file(
+        token_file,
+        {
+            "access_token": "expired-access-token-value",
+            "refresh_token": REFRESH_TOKEN,
+            "_spx_expires_at_epoch": 1,
+        },
+    )
+    calls: list[str] = []
+
+    def refresh_urlopen(request: object, timeout: int) -> object:
+        calls.append("refresh")
+        raise urllib.error.HTTPError("url", 401, "Unauthorized", None, None)
+
+    def fetcher(request_spec: object, access_token: str) -> dict[str, object]:
+        calls.append("fetch")
+        return load_payload()
+
+    result = run_manual_live_schwab_option_chain_selection(
+        config=live_config(),
+        access_token_file=token_file,
+        http_get_json=fetcher,
+        app_key="dummy-key",
+        app_secret="dummy-secret",
+        token_refresh_urlopen=refresh_urlopen,
+        now=NOW,
+    )
+    rendered = f"{result!r} {result!s}"
+
+    assert result.status == "error"
+    assert result.reason_code == "token_refresh_failed"
+    assert result.http_status == 401
+    assert calls == ["refresh"]
+    assert REFRESH_TOKEN not in rendered
+    assert "Authorization" not in rendered
 
 
 def test_successful_mocked_result_includes_freshness_context_summary() -> None:

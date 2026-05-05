@@ -135,20 +135,21 @@ def test_docs_preserve_no_broker_order_routing_or_automation_boundaries() -> Non
     )
 
 
-def test_roadmap_and_orchestration_mark_r12_live_runtime_wiring_complete() -> None:
+def test_roadmap_and_orchestration_mark_r13_token_manager_complete() -> None:
     roadmap = normalized("docs/founder_ready_roadmap.md")
     orchestration = normalized("docs/orchestration_state.md")
 
     assert "## r11 final founder-ready acceptance" in roadmap
     assert "## r12 - controlled marimo live runtime wiring" in roadmap
+    assert "## r13 - single-active-app schwab token manager" in roadmap
     assert "### status\n\ncomplete." in roadmap
     assert "not broker integration and not execution" in roadmap
     assert "controlled live runtime wiring" in roadmap
     assert "spx_option_chain_live_token_file" in roadmap
     assert "default launch or default verification" in roadmap
-    assert "current roadmap position: r12 complete" in orchestration
+    assert "current roadmap position: r13 complete" in orchestration
     assert (
-        "last completed step: r12 controlled marimo live runtime wiring"
+        "last completed step: r13 single-active-app schwab token manager"
         in orchestration
     )
 

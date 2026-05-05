@@ -74,7 +74,13 @@ The notebook expects the repo-native token-file environment variable:
 SPX_OPTION_CHAIN_LIVE_TOKEN_FILE=/path/to/local/token.json scripts/launch_app.sh
 ```
 
-`SCHWAB_TOKEN_PATH` is not used by the notebook runtime path.
+When the token manager determines that the access token is expired or near
+expiry, the explicit live path reads `SCHWAB_APP_KEY` and `SCHWAB_APP_SECRET`
+from the local environment to refresh before the Schwab option-chain REST
+request. `SCHWAB_OAUTH_TOKEN_URL` may override the OAuth token endpoint for
+tests or local override. Fixture/default mode does not require those variables
+and does not read real token files. `SCHWAB_TOKEN_PATH` is not used by the
+notebook runtime path.
 
 Inside the notebook:
 
@@ -89,7 +95,7 @@ Do not print credential environment variables. Do not paste tokens into docs, te
 ## Single-Active Schwab Ownership
 
 The 0DTE workstation is the primary implementation target for live 0DTE
-option-chain work. R13 will add an 0DTE-native Schwab token manager so
+option-chain work. R13 adds an 0DTE-native Schwab token manager so
 `0DTE_Marimo_Codex` can refresh tokens when it is the active live app.
 
 Use one Schwab registered developer app / key-secret-callback configuration

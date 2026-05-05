@@ -148,6 +148,10 @@ def load_marimo_option_chain_provider(
     http_get_json: Callable[[SchwabOptionChainRequestSpec, str], JsonObject]
     | None = None,
     access_token_text: str | None = None,
+    app_key: str | None = None,
+    app_secret: str | None = None,
+    token_url: str | None = None,
+    token_refresh_urlopen: Callable[..., object] | None = None,
     now: datetime | None = None,
 ) -> MarimoOptionChainToggleResult:
     """Load one option-chain provider result according to fail-closed controls."""
@@ -188,6 +192,14 @@ def load_marimo_option_chain_provider(
             io.StringIO(access_token_text) if access_token_text is not None else None
         ),
         http_get_json=http_get_json,
+        app_key=app_key,
+        app_secret=app_secret,
+        token_url=token_url,
+        **(
+            {"token_refresh_urlopen": token_refresh_urlopen}
+            if token_refresh_urlopen is not None
+            else {}
+        ),
         now=loaded_at,
     )
     provider_result = harness_result.provider_result or _blocked_live_provider_result(

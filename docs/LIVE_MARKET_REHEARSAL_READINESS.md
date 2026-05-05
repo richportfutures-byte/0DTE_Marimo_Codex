@@ -95,17 +95,19 @@ data_context: fresh_live
 operator_warning_level: info
 ```
 
-Known precondition: an expired or stale Schwab token can fail safely with
-`http_401_unauthorized`. Refresh the token through the existing local helper
-workflow before retrying the manual harness. The harness must not print raw
-payload bodies, token values, secrets, Authorization headers, API keys, client
-secrets, callback URL values, or token contents.
+Known precondition: the explicit live path can refresh an expired or
+near-expired local token file when `SPX_OPTION_CHAIN_LIVE_TOKEN_FILE`,
+`SCHWAB_APP_KEY`, and `SCHWAB_APP_SECRET` are configured after operator opt-in.
+Refresh failure must fail closed and must not call the option-chain REST
+request. The harness must not print raw payload bodies, token values, secrets,
+Authorization headers, API keys, client secrets, callback URL values, or token
+contents.
 
-## R13 Token Manager Direction
+## R13 Token Manager
 
-R13 is the next active roadmap step: Single-Active-App Schwab Token Manager.
-R13 makes `0DTE_Marimo_Codex` self-sufficient for Schwab token refresh when it
-is the active 0DTE live app. It does not delete, retire, or permanently disable
+R13 is complete: Single-Active-App Schwab Token Manager. R13 makes
+`0DTE_Marimo_Codex` self-sufficient for Schwab token refresh when it is the
+active 0DTE live app. It does not delete, retire, or permanently disable
 `ntb-marimo-console`.
 
 The live ownership doctrine is serial, not concurrent:
@@ -123,6 +125,12 @@ R13 scope is 0DTE-native token refresh before a live option-chain REST request
 when needed, atomic token-file rewrite, refresh-token preservation if Schwab
 omits a replacement refresh token, fail-closed refresh failure behavior, no
 fixture fallback after live failure, and mocked tests only.
+
+The runtime token-file source remains `SPX_OPTION_CHAIN_LIVE_TOKEN_FILE`.
+`SCHWAB_APP_KEY` and `SCHWAB_APP_SECRET` are read only inside the explicit
+live-gated path. `SCHWAB_OAUTH_TOKEN_URL` may override the OAuth token endpoint
+for tests/local override. Default launch, default verification, and fixture
+mode remain credential-free.
 
 R13 does not add automatic refresh loops, a streaming sidecar, order routing,
 account access, fills, positions import, P/L import, broker/execution

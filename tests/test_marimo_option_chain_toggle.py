@@ -33,13 +33,37 @@ FIXTURE_PATH = (
 )
 NOW = datetime(2026, 5, 2, 12, 0, tzinfo=timezone.utc)
 RAW_TOKEN = "secret-access-token-value"
+REFRESH_TOKEN = "secret-refresh-token-value"
 RAW_PAYLOAD_MARKER = "raw-payload-body-marker"
 
 
-def write_token_file(tmp_path: Path) -> Path:
+class Response:
+    def __init__(self, body: bytes) -> None:
+        self._body = body
+
+    def __enter__(self) -> "Response":
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return self._body
+
+
+def write_token_file(
+    tmp_path: Path,
+    token_data: dict[str, object] | None = None,
+) -> Path:
     token_file = tmp_path / "schwab-token.json"
     token_file.write_text(
-        json.dumps({"access_token": "token-file-contents-must-not-be-read"}),
+        json.dumps(
+            token_data
+            or {
+                "access_token": "token-file-contents-must-not-be-read",
+                "refresh_token": "refresh-token-contents-must-not-be-read",
+            }
+        ),
         encoding="utf-8",
     )
     return token_file
@@ -148,6 +172,93 @@ def test_mocked_live_success_renders_live_schwab_provider_not_fixture(
     assert result.provider_state.value == "live_fresh"
     assert result.context_flags.data_context == "fresh_live"
     assert should_preserve_last_successful_option_chain_result(result) is True
+
+
+def test_mocked_live_file_backed_refresh_populates_provider_result(
+    tmp_path: Path,
+) -> None:
+    calls: list[str] = []
+    token_file = write_token_file(
+        tmp_path,
+        {
+            "access_token": "expired-access-token-value",
+            "refresh_token": REFRESH_TOKEN,
+            "_spx_expires_at_epoch": 1,
+        },
+    )
+
+    def refresh_urlopen(request: object, timeout: int) -> Response:
+        calls.append("refresh")
+        return Response(
+            json.dumps(
+                {
+                    "access_token": RAW_TOKEN,
+                    "refresh_token": REFRESH_TOKEN,
+                    "expires_in": 1800,
+                }
+            ).encode("utf-8")
+        )
+
+    def fetcher(request_spec: object, access_token: str) -> dict[str, object]:
+        calls.append(f"fetch:{access_token}")
+        return load_payload()
+
+    result = load_marimo_option_chain_provider(
+        selected_mode=LIVE_OPTION_CHAIN_MODE_LABEL,
+        confirm_live=MANUAL_LIVE_CONFIRM_PHRASE,
+        fixture_path=FIXTURE_PATH,
+        live_token_file_path=token_file,
+        http_get_json=fetcher,
+        app_key="dummy-key",
+        app_secret="dummy-secret",
+        token_refresh_urlopen=refresh_urlopen,
+        now=NOW,
+    )
+
+    assert calls == ["refresh", f"fetch:{RAW_TOKEN}"]
+    assert result.provider_result.source_type == "live"
+    assert result.provider_result.status == "available"
+    assert result.provider_state.value == "live_fresh"
+
+
+def test_mocked_live_token_refresh_failure_is_live_unavailable(
+    tmp_path: Path,
+) -> None:
+    calls: list[str] = []
+    token_file = write_token_file(
+        tmp_path,
+        {
+            "access_token": "expired-access-token-value",
+            "refresh_token": REFRESH_TOKEN,
+            "_spx_expires_at_epoch": 1,
+        },
+    )
+
+    def refresh_urlopen(request: object, timeout: int) -> object:
+        calls.append("refresh")
+        raise urllib.error.HTTPError("url", 401, "Unauthorized", None, None)
+
+    def fetcher(request_spec: object, access_token: str) -> dict[str, object]:
+        calls.append("fetch")
+        return load_payload()
+
+    result = load_marimo_option_chain_provider(
+        selected_mode=LIVE_OPTION_CHAIN_MODE_LABEL,
+        confirm_live=MANUAL_LIVE_CONFIRM_PHRASE,
+        fixture_path=FIXTURE_PATH,
+        live_token_file_path=token_file,
+        http_get_json=fetcher,
+        app_key="dummy-key",
+        app_secret="dummy-secret",
+        token_refresh_urlopen=refresh_urlopen,
+        now=NOW,
+    )
+
+    assert calls == ["refresh"]
+    assert result.provider_result.source_type == "live"
+    assert result.provider_result.status == "error"
+    assert result.provider_result.reason_code == "token_refresh_failed"
+    assert result.provider_state.value == "live_unavailable"
 
 
 def test_fixture_success_is_not_retained_as_last_successful_live_context(

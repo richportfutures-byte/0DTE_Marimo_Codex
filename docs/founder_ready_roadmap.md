@@ -542,9 +542,10 @@ the required local token source and confirmation phrase.
 
 ### Status
 
-Next active roadmap step. R13 is not implemented by this documentation update.
-R12 remains complete and verified at commit
-`5e63a7ea5f95fe6cdaca0917627920083e02d004`.
+Complete. R13 adds an 0DTE-native Schwab token manager for the explicitly
+gated live option-chain path. R12 remains complete and verified at commit
+`5e63a7ea5f95fe6cdaca0917627920083e02d004`, and the hybrid continuous
+market-data roadmap amendment remains in force after R13.
 
 ### Correct Interpretation
 
@@ -568,8 +569,8 @@ The ownership doctrine is:
 ### Goal
 
 Add an 0DTE-native Schwab token manager so the notebook live option-chain path
-can refresh an expired token before a manually gated live REST request, while
-preserving fixture defaults and fail-closed behavior.
+can refresh an expired or near-expired token before a manually gated live REST
+request, while preserving fixture defaults and fail-closed behavior.
 
 ### Deliverables
 
@@ -581,6 +582,11 @@ preserving fixture defaults and fail-closed behavior.
   refresh token.
 - Live refresh failures surfaced as live failures.
 - Deterministic mocked tests only.
+- `SPX_OPTION_CHAIN_LIVE_TOKEN_FILE` remains the token-file source. The live
+  refresh path reads `SCHWAB_APP_KEY` and `SCHWAB_APP_SECRET` only after the
+  existing live source, confirmation phrase, token-file, and manual refresh
+  gates pass. `SCHWAB_OAUTH_TOKEN_URL` may override the token endpoint for
+  tests/local override.
 
 ### Non-goals
 
@@ -621,10 +627,10 @@ preserving fixture defaults and fail-closed behavior.
 
 ### Resume note for future LLM orchestration
 
-R13 implementation must stay inside `0DTE_Marimo_Codex`. Use
-`ntb-marimo-console` only as a donor/reference for Schwab OAuth, token, or
-harness behavior. Do not implement R14 architecture audit findings, R15 hybrid
-market-data implementation, or R16 market-data panel integration in R13.
+R13 implementation stays inside `0DTE_Marimo_Codex`. Use `ntb-marimo-console`
+only as a donor/reference for Schwab OAuth, token, or harness behavior. Do not
+implement R14 architecture audit findings, R15 hybrid market-data
+implementation, or R16 market-data panel integration while maintaining R13.
 
 ## R14 - Hybrid Continuous Market Data Architecture Audit
 
