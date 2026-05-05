@@ -27,12 +27,16 @@
 
 1. Open this file first.
 2. Confirm `docs/founder_ready_roadmap.md` exists, records R12 complete, and
-   includes the R13/R14/R15 live-runtime sequencing.
+   includes the R13/R14/R15/R16 live-runtime sequencing.
 3. Check `git status --short` before making changes.
 4. Treat R12 as complete and R13 as the next active roadmap step unless the user explicitly redirects.
 5. For any future change prompt, perform a clean-tree and fixture-safe baseline verification before implementation.
 6. Keep all routine verification credential-free and fixture-safe.
 7. If live-data work is later requested, confirm boundaries first and never read or print credential material.
+8. Preserve the hybrid market-data doctrine: REST for chain discovery,
+   snapshots, strike/expiry universe, ATM straddle context, liquidity, and
+   Greeks when provided by REST; Streamer for continuous underlying and selected
+   option quote updates where supported.
 
 ## Do Not Do Yet
 
@@ -40,6 +44,8 @@
 - No live API calls.
 - No credential reads.
 - No token-manager implementation during R13A document alignment.
+- No REST auto-refresh or streamer sidecar implementation during R13 planning
+  amendments.
 - No UI polish.
 - No execution or broker-order features.
 
@@ -948,15 +954,89 @@ option-chain REST requests when needed, atomic token-file rewrite,
 refresh-token preservation when Schwab omits it, fail-closed refresh failures,
 no fixture fallback after live failure, and mocked tests only.
 
-R14 is reserved for Conservative REST Auto-Refresh: default off, manual refresh
-primary, conservative minimum interval guard, 429 backoff, and hard stop after
-repeated live failures.
+R14 is reserved for Hybrid Continuous Market Data Architecture Audit. The audit
+must determine which SPX/SPXW market-data fields come from REST and which come
+from Schwab Streamer, confirm symbol/field support, define source/freshness
+labels for underlying price, selected option quotes, option-chain snapshots,
+Greeks, ATM straddle context, and liquidity, and define fail-closed
+authorization behavior when required data is stale, unavailable, or
+parse-invalid.
 
-R15 is reserved for Single Schwab Streamer Sidecar / Quote Cache: one active
-streamer connection, Marimo cache-snapshot reads, and no long-running WebSocket
-loop inside ordinary notebook cells.
+R15 is reserved for Hybrid REST Chain/Greeks Refresh + Streamer Quote Cache
+Implementation. REST should cover full option-chain discovery, chain snapshots,
+expiration/strike universe, ATM straddle context, chain-level liquidity, and
+Greeks when provided by the REST chain endpoint. Schwab Streamer should cover
+continuous underlying and selected option quote updates where Schwab supports
+the symbols and fields. Marimo should read cache/state snapshots and must not
+own a long-running WebSocket loop inside ordinary notebook cells.
+
+R16 is reserved for Continuous Market Data Panel Integration: show source, last
+update time, age, and freshness classification for every live market-data field
+and use freshness to gate live-dependent authorization while preserving
+fixture-safe defaults and explicit live opt-in.
+
+Open Schwab documentation questions remain for official REST limits for
+chains/quotes/pricehistory, numeric Streamer symbol limits, whether
+`$SPX`/SPXW index options stream through `LEVELONE_OPTIONS`, `OPTIONS_BOOK`,
+both, or neither, and whether Greeks are available via streaming fields or only
+REST chain snapshots.
 
 No token-manager implementation was added in R13A.
+
+### Verification Results
+
+- PASS: `git diff -- docs README.md || true`
+  - Result: displayed only intended documentation / README changes.
+- PASS: `uv run pytest`
+  - Result: 566 passed.
+- PASS: `uv run ruff check .`
+  - Result: all checks passed.
+
+## R13 Planning Amendment For Hybrid Continuous Market Data - Results
+
+- Date/time in local shell: Tue May 5 2026
+- Current roadmap position: R12 complete
+- Next active roadmap step: R13 Single-Active-App Schwab Token Manager
+
+### Files Changed
+
+- `README.md`
+- `docs/founder_ready_roadmap.md`
+- `docs/HANDOFF.md`
+- `docs/OPERATOR_RUNBOOK.md`
+- `docs/LIVE_MARKET_REHEARSAL_READINESS.md`
+- `docs/orchestration_state.md`
+
+### Alignment Summary
+
+R13 remains the required foundation for Schwab live work: 0DTE-native token
+refresh before live Schwab calls when needed, fail-closed refresh failure
+handling, and no fixture fallback.
+
+The old loose R14/R15 framing is replaced with a hybrid live-data sequence:
+
+- R14: Hybrid Continuous Market Data Architecture Audit.
+- R15: Hybrid REST Chain/Greeks Refresh + Streamer Quote Cache Implementation.
+- R16: Continuous Market Data Panel Integration.
+
+The target architecture uses REST for option-chain discovery, full chain
+snapshots, expiration/strike universe, ATM straddle context, chain-level
+liquidity, and Greeks when provided by REST. It uses Schwab Streamer/WebSocket
+for continuous underlying price and selected option quote updates where Schwab
+supports the symbols and fields. Full-chain streaming and streaming Greeks must
+not be claimed unless Schwab documentation proves them.
+
+Every live market-data field must carry source and freshness classification.
+Stale, unavailable, or parse-invalid data must block live-dependent
+authorization, and live failure must not fall back to fixture data. Marimo must
+read cache/state snapshots from a single-active sidecar/cache rather than own a
+long-running WebSocket loop inside ordinary notebook cells.
+
+Open Schwab documentation questions remain for official REST limits for
+chains/quotes/pricehistory, numeric Streamer symbol limits, whether
+`$SPX`/SPXW index options stream through `LEVELONE_OPTIONS`, `OPTIONS_BOOK`,
+both, or neither, and whether Greeks are available via streaming fields or only
+REST chain snapshots.
 
 ### Verification Results
 

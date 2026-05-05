@@ -623,31 +623,69 @@ preserving fixture defaults and fail-closed behavior.
 
 R13 implementation must stay inside `0DTE_Marimo_Codex`. Use
 `ntb-marimo-console` only as a donor/reference for Schwab OAuth, token, or
-harness behavior. Do not implement R14 auto-refresh or R15 streamer behavior in
-R13.
+harness behavior. Do not implement R14 architecture audit findings, R15 hybrid
+market-data implementation, or R16 market-data panel integration in R13.
 
-## R14 - Conservative REST Auto-Refresh
+## R14 - Hybrid Continuous Market Data Architecture Audit
 
 ### Status
 
 Future step after R13.
 
+### Corrected Live-Data Objective
+
+The final live-data architecture should be hybrid. The app should continuously
+update SPX/SPXW price, selected option quotes, option-chain context, and Greeks
+to the maximum extent permitted by Schwab's documented REST and Streamer
+capabilities while preserving fail-closed behavior, single-active-app
+ownership, conservative REST usage, and explicit source/freshness labeling.
+
+REST is the source for option-chain discovery, full chain snapshots,
+expiration/strike universe, ATM straddle context, chain-level liquidity, and
+Greeks when the REST chain endpoint provides them. Schwab Streamer/WebSocket is
+the source for continuous underlying price and selected option quote updates
+where Schwab supports the requested symbols and fields.
+
+Do not claim the full option chain is streaming unless Schwab documentation
+proves it. Do not claim Greeks are streaming unless Schwab documentation proves
+the fields.
+
 ### Scope
 
-- Default off.
-- Manual refresh remains the primary operator workflow.
-- Conservative minimum interval guard for REST refreshes.
-- 429 backoff behavior.
-- Hard stop after repeated live failures.
+- Determine exactly which data comes from REST.
+- Determine exactly which data comes from Streamer.
+- Confirm symbol/field support for SPX/SPXW, selected option contracts,
+  underlying/index proxies, Greeks, and quote fields based on available Schwab
+  documentation and local donor harness behavior.
+- Define the source/freshness model for underlying price, selected option
+  quotes, option-chain snapshot, Greeks, ATM straddle context, and liquidity.
+- Define a conservative REST refresh policy for chain/Greeks snapshots without
+  aggressive undocumented polling.
+- Define a streamer quote-cache model for continuous selected quotes.
+- Define fail-closed authorization behavior when any required source is stale,
+  unavailable, or parse-invalid.
+- Identify open Schwab support/documentation questions before implementation.
 
 ### Non-goals
 
-- No official Schwab REST rate-limit claims unless verified from official docs
-  in a future prompt.
-- No streaming sidecar.
+- No token-manager implementation.
+- No REST auto-refresh implementation.
+- No streamer sidecar implementation.
+- No official Schwab REST rate-limit claims unless verified from official
+  Schwab documentation in a future prompt.
 - No broker/order/execution/account behavior.
+- No fills, positions import, or P/L import.
 
-## R15 - Single Schwab Streamer Sidecar / Quote Cache
+### Open Schwab Documentation Questions
+
+- Official REST limits for chains, quotes, and pricehistory.
+- Numeric Streamer symbol limit.
+- Whether `$SPX`/SPXW index options stream through `LEVELONE_OPTIONS`,
+  `OPTIONS_BOOK`, both, or neither.
+- Whether Greeks are available via streaming fields or only REST chain
+  snapshots.
+
+## R15 - Hybrid REST Chain/Greeks Refresh + Streamer Quote Cache Implementation
 
 ### Status
 
@@ -655,12 +693,47 @@ Future step after R14.
 
 ### Scope
 
-- One active streamer connection.
-- Marimo reads cache snapshots.
+- Implement a single-active Schwab streamer sidecar/cache.
+- Implement a conservative REST chain/Greeks refresh layer for full chain
+  discovery, chain snapshots, expiration/strike universe, ATM straddle context,
+  chain-level liquidity, and Greeks when REST provides them.
+- Stream supported underlying price and selected option quote fields where
+  Schwab supports the symbols and fields.
+- Marimo reads snapshots from cache/state.
 - No long-running WebSocket loop inside ordinary notebook cells.
+- Label source and freshness for every displayed field.
+- Fail closed when required REST or Streamer data is stale, unavailable, or
+  parse-invalid.
+- Preserve no fixture fallback after live failure.
 
 ### Non-goals
 
+- No claim that full-chain streaming or streaming Greeks exist unless Schwab
+  documentation proves it.
+- No aggressive undocumented REST polling.
 - No multiple simultaneous Schwab streamer owners.
 - No order routing, account actions, fills, positions import, P/L import, or
   broker/execution integration.
+
+## R16 - Continuous Market Data Panel Integration
+
+### Status
+
+Future step after R15.
+
+### Scope
+
+- Integrate continuous market-data state into the Marimo app.
+- Show source, last update time, age, and freshness classification for
+  underlying price, selected option quotes, option-chain snapshot, Greeks, ATM
+  straddle context, and liquidity.
+- Use freshness to gate live-dependent authorization.
+- Preserve fixture-safe default behavior.
+- Preserve manual/live opt-in controls where appropriate.
+
+### Non-goals
+
+- No order routing, account actions, fills, positions import, P/L import, or
+  broker/execution integration.
+- No default live launch or default live verification.
+- No fixture fallback after live failure.

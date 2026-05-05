@@ -107,12 +107,30 @@ R13 explicitly excludes automatic refresh loops, streaming sidecars, order
 routing, account access, fills, positions import, P/L import,
 broker/execution integration, and official Schwab REST rate-limit claims.
 
-R14 is reserved for conservative REST auto-refresh with default-off behavior,
-manual refresh as the primary workflow, a conservative minimum interval guard,
-429 backoff, and a hard stop after repeated live failures. R15 is reserved for a
-single Schwab streamer sidecar / quote cache with one active streamer
-connection and Marimo cache-snapshot reads, not long-running WebSocket loops
-inside ordinary notebook cells.
+After R13, the live-data roadmap is hybrid rather than REST-only or
+streamer-only. R14 is reserved for a Hybrid Continuous Market Data Architecture
+Audit that decides which SPX/SPXW data comes from REST and which comes from
+Schwab Streamer, confirms symbol/field support, defines source/freshness labels
+for underlying price, selected option quotes, chain snapshots, Greeks, ATM
+straddle context, and liquidity, and defines fail-closed behavior when any
+required source is stale or unavailable.
+
+R15 is reserved for Hybrid REST Chain/Greeks Refresh + Streamer Quote Cache
+Implementation. REST should handle full option-chain discovery, chain
+snapshots, expiration/strike universe, ATM straddle context, liquidity, and
+Greeks when provided by the REST chain endpoint. Schwab Streamer should handle
+continuous underlying and selected option quote updates where the symbols and
+fields are supported. Do not claim full-chain streaming or streaming Greeks
+unless Schwab documentation proves it. Marimo must read cache/state snapshots
+instead of owning a long-running WebSocket loop inside ordinary notebook cells.
+
+R16 is reserved for Continuous Market Data Panel Integration: show source, last
+update time, age, and freshness classification for every live market-data
+field, and use freshness to gate live-dependent authorization. Open Schwab
+questions remain for official REST limits for chains/quotes/pricehistory,
+numeric Streamer symbol limits, whether `$SPX`/SPXW options stream through
+`LEVELONE_OPTIONS`, `OPTIONS_BOOK`, both, or neither, and whether Greeks are
+available via streaming fields or only REST chain snapshots.
 
 ## Founder-Ready Acceptance
 

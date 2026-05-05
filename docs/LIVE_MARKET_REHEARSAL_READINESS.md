@@ -128,6 +128,34 @@ R13 does not add automatic refresh loops, a streaming sidecar, order routing,
 account access, fills, positions import, P/L import, broker/execution
 integration, or official Schwab REST rate-limit claims.
 
+## Hybrid Continuous Market Data Direction
+
+After R13, the roadmap moves to a hybrid live-data model. REST is planned for
+option-chain discovery, full chain snapshots, expiration/strike universe, ATM
+straddle context, chain-level liquidity, and Greeks when the REST chain
+endpoint provides them. Schwab Streamer/WebSocket is planned for continuous
+underlying price and selected option quote updates where Schwab supports the
+symbols and fields.
+
+Do not claim full-chain streaming or streaming Greeks unless Schwab
+documentation proves those capabilities. Full chain and Greeks should update
+continuously only to the extent safely allowed by documented Schwab REST limits
+or conservative operational assumptions. No aggressive undocumented REST polling
+is approved.
+
+Future live rehearsal criteria must require source/freshness labels for
+underlying price, selected option quotes, option-chain snapshot, Greeks, ATM
+straddle context, and liquidity. Stale, unavailable, or parse-invalid live data
+must block live-dependent authorization and must not fall back to fixture data.
+Marimo should read cache/state snapshots from a single-active sidecar/cache,
+not own a long-running WebSocket loop inside ordinary notebook cells.
+
+Open Schwab documentation questions remain for official REST limits for
+chains/quotes/pricehistory, numeric Streamer symbol limits, whether
+`$SPX`/SPXW index options stream through `LEVELONE_OPTIONS`, `OPTIONS_BOOK`,
+both, or neither, and whether Greeks are available via streaming fields or only
+REST chain snapshots.
+
 ## Boundaries
 
 - Marimo live option-chain wiring is controlled, display-only, operator-gated,

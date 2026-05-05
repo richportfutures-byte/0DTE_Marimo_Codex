@@ -105,8 +105,10 @@ The next active roadmap step is R13: Single-Active-App Schwab Token Manager. R13
 ## Future Work Backlog
 
 - R13 Single-Active-App Schwab Token Manager: 0DTE-native token refresh before live option-chain REST requests when needed, atomic token-file rewrite, refresh-token preservation when Schwab omits it, fail-closed refresh failures, no fixture fallback, and mocked tests only.
-- R14 Conservative REST Auto-Refresh: default off, manual refresh primary, conservative minimum interval guard, 429 backoff, and hard stop after repeated live failures.
-- R15 Single Schwab Streamer Sidecar / Quote Cache: one active streamer connection, Marimo cache-snapshot reads, and no long-running WebSocket loop inside ordinary notebook cells.
+- R14 Hybrid Continuous Market Data Architecture Audit: determine which SPX/SPXW data comes from Schwab REST versus Streamer, confirm symbol/field support from documentation and donor harness behavior, define source/freshness labels for price, selected option quotes, chain snapshots, Greeks, ATM straddle context, and liquidity, and define fail-closed authorization behavior when any required source is stale or unavailable.
+- R15 Hybrid REST Chain/Greeks Refresh + Streamer Quote Cache Implementation: one active Schwab streamer sidecar/cache for supported continuous price and selected option quote fields, conservative REST refresh for full chain discovery/snapshots and Greeks when provided by REST, Marimo cache-snapshot reads, and no long-running WebSocket loop inside ordinary notebook cells.
+- R16 Continuous Market Data Panel Integration: surface source, last update time, age, and freshness classification for every live market-data field, and use freshness to gate live-dependent authorization while preserving fixture-safe defaults and explicit live opt-in.
+- Open Schwab documentation questions: official REST limits for chains/quotes/pricehistory, numeric Streamer symbol limits, whether `$SPX`/SPXW index options stream through `LEVELONE_OPTIONS`, `OPTIONS_BOOK`, both, or neither, and whether Greeks are available via streaming fields or only REST chain snapshots.
 - Optional source-link registry using official Cboe/OCC/OIC/broker references only.
 - Optional layout refinement.
 - Optional export/static publishing workflow.
